@@ -1,0 +1,53 @@
+﻿@{
+    ViewData["Title"] = "YourTurn - Ana Sayfa";
+}
+
+<div class="container mt-5">
+    <div class="row text-center">
+
+        <!-- Sol Kutu - Oyuncu Bilgileri -->
+        <div class="col-md-4 border rounded p-4">
+            <h4>Oyuncu Bilgileri</h4>
+            <form id="playerForm">
+                <input type="text" id="playerName" name="playerName" class="form-control mb-2" placeholder="İsminizi girin" required />
+            </form>
+        </div>
+
+        <!-- Orta Kutu - Oyna -->
+        <div class="col-md-4 border rounded p-4">
+            <h4>OYNA</h4>
+            <p>Oyuna başlamak için isminizi girin</p>
+
+            <!-- Oyna butonunu buraya taşıdık -->
+            <form method="post" action="/Home/Start" onsubmit="return transferName()">
+                <input type="hidden" id="hiddenPlayerName" name="playerName" />
+                <button type="submit" class="btn btn-success btn-lg mt-2">Oyna</button>
+            </form>
+        </div>
+
+        <!-- Sağ Kutu - Nasıl Oynanır -->
+        <div class="col-md-4 border rounded p-4">
+            <h4>Nasıl Oynanır?</h4>
+            <p>Her takım sırayla süre kullanarak soruları cevaplar. Süresi biten kaybeder.</p>
+        </div>
+
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+       function transferName() {
+    const nameInput = document.getElementById('playerName');
+    const hiddenInput = document.getElementById('hiddenPlayerName');
+
+    if (!nameInput.value.trim()) {
+        alert("Lütfen isim girin!");
+        return false; // Form gönderilmesin
+    }
+
+    hiddenInput.value = nameInput.value;
+    return true; // Form gönderilsin
+}
+
+    </script>
+}

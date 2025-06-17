@@ -1,0 +1,62 @@
+@{
+    ViewData["Title"] = "Lobi Seçimi";
+}
+
+<div class="container mt-5">
+    <div class="row text-center">
+        <!-- Sol Kutu - Lobiye Katıl -->
+        <div class="col-md-6 border rounded p-4">
+            <h4>Bir Lobiye Katıl</h4>
+            <p class="text-muted">Mevcut bir lobiye katılmak için lobi kodunu girin</p>
+            <form method="post" action="/Lobby/Join">
+                <input type="text" name="lobbyCode" class="form-control mb-3" placeholder="Lobi kodunu girin" required />
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="fas fa-sign-in-alt"></i> Katıl
+                </button>
+            </form>
+        </div>
+
+        <!-- Sağ Kutu - Lobi Kur -->
+        <div class="col-md-6 border rounded p-4">
+            <h4>Yeni Lobi Kur</h4>
+            <p class="text-muted">Yeni bir lobi oluşturun ve arkadaşlarınızı davet edin</p>
+            <form method="post" action="/Lobby/Create">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus"></i> Lobi Kur
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="row mt-5">
+        <div class="col-12 text-center">
+            <h5 class="text-muted">Nasıl Oynanır?</h5>
+            <div class="row mt-3">
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title">1. Lobi Oluştur</h6>
+                            <p class="card-text">Yeni bir lobi oluştur ve arkadaşlarınla paylaş</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title">2. Takım Seç</h6>
+                            <p class="card-text">Kırmızı veya Mavi takımından birini seç</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h6 class="card-title">3. Oyunu Başlat</h6>
+                            <p class="card-text">Kategori seç ve oyunu başlat</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

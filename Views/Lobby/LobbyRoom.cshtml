@@ -1,0 +1,421 @@
+@model YourTurn.Web.Models.Lobby
+
+@{
+    var currentPlayerName = ViewBag.CurrentPlayerName?.ToString();
+    var currentPlayer = Model.Players.FirstOrDefault(p => p.Name == currentPlayerName);
+    var currentPlayerTeam = currentPlayer?.Team ?? "";
+    var isHost = Model.HostPlayerName == ViewBag.CurrentPlayerName?.ToString();
+    var gameState = Model.GameState ?? new GameState { IsWaitingForVolunteers = true };
+    var team1Volunteer = gameState.Team1Volunteer;
+    var team2Volunteer = gameState.Team2Volunteer;
+}
+
+@Html.AntiForgeryToken()
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <form method="post" action="/Lobby/Leave" class="d-inline">
+        <input type="hidden" name="code" value="@Model.LobbyCode" />
+        <button type="submit" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Lobiden Ayrıl
+        </button>
+    </form>
+    <h2 class="text-center mb-0">Lobi Kodu: <span id="lobbyCode" class="text-warning" style="cursor: pointer; user-select: all;" onclick="copyLobbyCode()" title="Kopyalamak için tıklayın">@Model.LobbyCode</span></h2>
+    <div style="width: 140px;"></div> <!-- Spacing için boş div -->
+</div>
+
+<!-- Kategori Seçimi (Sadece Host Görebilir) -->
+@if (isHost && !Model.IsGameStarted)
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-crown"></i> Oyun Kategorisi Seçimi</h5>
+        </div>
+        <div class="card-body">
+            @if (string.IsNullOrEmpty(Model.Category))
+            {
+                <p class="text-warning">⚠️ Oyunu başlatabilmek için bir kategori seçmelisiniz.</p>
+                <form method="post" action="/Lobby/ChooseCategory" class="row g-3">
+                    <input type="hidden" name="code" value="@Model.LobbyCode" />
+                    <div class="col-md-8">
+                        <select class="form-select" name="category" required>
+                            <option value="">Kategori Seçin</option>
+                            <option value="Genel Kültür">Genel Kültür</option>
+                            <option value="Spor">Spor</option>
+                            <option value="Tarih">Tarih</option>
+                            <option value="Bilim">Bilim</option>
+                            <option value="Sanat">Sanat</option>
+                            <option value="Coğrafya">Coğrafya</option>
+                            <option value="Eğlence">Eğlence</option>
+                            <option value="Teknoloji">Teknoloji</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" class="btn btn-primary">Kategori Seç</button>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="mb-0"><strong>Seçilen Kategori:</strong> <span class="badge bg-success fs-6">@Model.Category</span></p>
+                    </div>
+                    <form method="post" action="/Lobby/ChooseCategory" class="d-inline">
+                        <input type="hidden" name="code" value="@Model.LobbyCode" />
+                        <input type="hidden" name="category" value="" />
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">Kategori Değiştir</button>
+                    </form>
+                </div>
+            }
+        </div>
+    </div>
+}
+else if (!string.IsNullOrEmpty(Model.Category))
+{
+    <p class="text-center text-muted">Kategori: <strong class="text-success">@Model.Category</strong></p>
+}
+else
+{
+    <p class="text-center text-muted">Kategori: <em class="text-warning">Host tarafından seçilmeyi bekliyor...</em></p>
+}
+
+<!-- Hata ve Başarı Mesajları -->
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Hata:</strong> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <strong>Başarılı:</strong> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Takımda Olmayan Oyuncular -->
+@if (Model.Players.Any(p => string.IsNullOrEmpty(p.Team)))
+{
+    <div class="row mt-4">
+        <div class="col-12">
+            <h4 class="text-secondary">⚪ Takım Seçmeyen Oyuncular</h4>
+            <ul class="list-group mb-3">
+                @foreach (var player in Model.Players.Where(p => string.IsNullOrEmpty(p.Team)))
+                {
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        @player.Name
+                        @if (player.Name == currentPlayerName)
+                        {
+                            <span class="badge bg-success">Sen</span>
+                        }
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+}
+
+<div class="row mt-4">
+    <!-- Kırmızı Takım -->
+    <div class="col-md-6 border-end">
+        <h4 class="text-danger">🔴 Kırmızı Takım</h4>
+        <ul class="list-group mb-3">
+            @foreach (var player in Model.Players.Where(p => p.Team == "Sol"))
+            {
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    @player.Name
+                    @if (player.Name == currentPlayerName)
+                    {
+                        <span class="badge bg-success">Sen</span>
+                    }
+                    @if (Model.GameState?.Team1Volunteer == player.Name)
+                    {
+                        <span class="badge bg-danger">Gönüllü</span>
+                    }
+                </li>
+            }
+        </ul>
+
+        @if (!Model.IsGameStarted)
+        {
+            @if (currentPlayerTeam != "Sol")
+            {
+                <form method="post" action="/Lobby/ChooseTeam" class="mt-2">
+                    <input type="hidden" name="code" value="@Model.LobbyCode" />
+                    <input type="hidden" name="playerName" value="@currentPlayerName" />
+                    <input type="hidden" name="team" value="Sol" />
+                    <button type="submit" class="btn btn-danger">
+                        @(string.IsNullOrEmpty(currentPlayerTeam) ? "Kırmızı Takıma Katıl" : "Kırmızı Takıma Geç")
+                    </button>
+                </form>
+            }
+            else
+            {
+                <div class="alert alert-success mt-2">
+                    <i class="fas fa-check"></i> Bu takımdasınız
+                </div>
+                @if (team1Volunteer != currentPlayerName)
+                {
+                    <button class="btn btn-danger mt-2" onclick="volunteerForTeam('Sol')">
+                        <i class="fas fa-hand-paper"></i> Gönüllü Ol
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-warning mt-2" onclick="withdrawVolunteer('Sol')">
+                        <i class="fas fa-times"></i> Gönüllülükten Çık
+                    </button>
+                }
+            }
+        }
+    </div>
+
+    <!-- Mavi Takım -->
+    <div class="col-md-6">
+        <h4 class="text-primary">🔵 Mavi Takım</h4>
+        <ul class="list-group mb-3">
+            @foreach (var player in Model.Players.Where(p => p.Team == "Sağ"))
+            {
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    @player.Name
+                    @if (player.Name == currentPlayerName)
+                    {
+                        <span class="badge bg-success">Sen</span>
+                    }
+                    @if (Model.GameState?.Team2Volunteer == player.Name)
+                    {
+                        <span class="badge bg-primary">Gönüllü</span>
+                    }
+                </li>
+            }
+        </ul>
+
+        @if (!Model.IsGameStarted)
+        {
+            @if (currentPlayerTeam != "Sağ")
+            {
+                <form method="post" action="/Lobby/ChooseTeam" class="mt-2">
+                    <input type="hidden" name="code" value="@Model.LobbyCode" />
+                    <input type="hidden" name="playerName" value="@currentPlayerName" />
+                    <input type="hidden" name="team" value="Sağ" />
+                    <button type="submit" class="btn btn-primary">
+                        @(string.IsNullOrEmpty(currentPlayerTeam) ? "Mavi Takıma Katıl" : "Mavi Takıma Geç")
+                    </button>
+                </form>
+            }
+            else
+            {
+                <div class="alert alert-success mt-2">
+                    <i class="fas fa-check"></i> Bu takımdasınız
+                </div>
+                @if (team2Volunteer != currentPlayerName)
+                {
+                    <button class="btn btn-primary mt-2" onclick="volunteerForTeam('Sağ')">
+                        <i class="fas fa-hand-paper"></i> Gönüllü Ol
+                    </button>
+                }
+                else
+                {
+                    <button class="btn btn-warning mt-2" onclick="withdrawVolunteer('Sağ')">
+                        <i class="fas fa-times"></i> Gönüllülükten Çık
+                    </button>
+                }
+            }
+        }
+    
+</div>
+
+
+
+@if (!Model.IsGameStarted && !string.IsNullOrEmpty(currentPlayerTeam))
+{
+    <div class="text-center mt-3">
+        <form method="post" action="/Lobby/LeaveTeam" class="d-inline">
+            <input type="hidden" name="code" value="@Model.LobbyCode" />
+            <input type="hidden" name="playerName" value="@currentPlayerName" />
+            <button type="submit" class="btn btn-warning">Takımdan Çık</button>
+        </form>
+    </div>
+}
+
+<!-- Oyunu Başlatma -->
+@if (isHost && !Model.IsGameStarted)
+{
+    <div class="text-center mt-4">
+        @{
+            var team1Count = Model.Players.Count(p => p.Team == "Sol");
+            var team2Count = Model.Players.Count(p => p.Team == "Sağ");
+            var hasVolunteers = Model.GameState?.Team1Volunteer != null && Model.GameState?.Team2Volunteer != null;
+            var canStartGame = !string.IsNullOrEmpty(Model.Category) && team1Count > 0 && team2Count > 0 && hasVolunteers;
+        }
+        
+        @if (canStartGame)
+        {
+            <form method="post" action="/Lobby/StartGame">
+                <input type="hidden" name="code" value="@Model.LobbyCode" />
+                <button type="submit" class="btn btn-success btn-lg">
+                    <i class="fas fa-play"></i> Oyunu Başlat
+                </button>
+            </form>
+        }
+        else
+        {
+            <button class="btn btn-success btn-lg" disabled title="Oyunu başlatmak için kategori seçin, her takımda en az bir oyuncu olsun ve her takımdan bir gönüllü olsun">
+                <i class="fas fa-play"></i> Oyunu Başlat
+            </button>
+            <div class="text-muted mt-2">
+                <small>
+                    @if (string.IsNullOrEmpty(Model.Category))
+                    {
+                        <span class="text-warning">• Kategori seçilmedi</span><br />
+                    }
+                    @if (team1Count == 0)
+                    {
+                        <span class="text-warning">• Kırmızı takımda oyuncu yok</span><br />
+                    }
+                    @if (team2Count == 0)
+                    {
+                        <span class="text-warning">• Mavi takımda oyuncu yok</span><br />
+                    }
+                    @if (!hasVolunteers)
+                    {
+                        <span class="text-warning">• Her takımdan bir gönüllü olması gerekiyor</span>
+                    }
+                </small>
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <script>
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/LobbyHub")
+            .build();
+
+        connection.start().then(() => {
+            connection.invoke("AddToGroup", "@Model.LobbyCode");
+        });
+
+        connection.on("UpdateLobby", function () {
+            location.reload();
+        });
+
+        function volunteerForTeam(team) {
+            fetch('/Lobby/VolunteerForTeam', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: JSON.stringify({
+                    code: '@Model.LobbyCode',
+                    team: team
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.success) {
+                    alert(data.message || 'Bir hata oluştu');
+                }
+            })
+            .catch(error => {
+                console.error('Gönüllü olma hatası:', error);
+                alert('Bir hata oluştu');
+            });
+        }
+
+        function withdrawVolunteer(team) {
+            fetch('/Lobby/WithdrawVolunteer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: JSON.stringify({
+                    code: '@Model.LobbyCode',
+                    team: team
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (!data.success) {
+                    alert(data.message || 'Bir hata oluştu');
+                }
+            })
+            .catch(error => {
+                console.error('Gönüllülükten çıkma hatası:', error);
+                alert('Bir hata oluştu');
+            });
+        }
+
+        // Oyun başladığında tüm oyuncuları oyun sayfasına yönlendir
+        connection.on("GameStarted", function () {
+            window.location.href = "/Game/Game?code=@Model.LobbyCode";
+        });
+
+        function copyLobbyCode() {
+            const lobbyCode = document.getElementById('lobbyCode');
+            const codeText = lobbyCode.textContent;
+            
+            // Modern Clipboard API kullan (destekleniyorsa)
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(codeText).then(() => {
+                    showCopyFeedback();
+                }).catch(() => {
+                    // Fallback to old method
+                    fallbackCopy();
+                });
+            } else {
+                // Fallback method for older browsers
+                fallbackCopy();
+            }
+        }
+        
+        function fallbackCopy() {
+            const lobbyCode = document.getElementById('lobbyCode');
+            const tempInput = document.createElement('input');
+            tempInput.value = lobbyCode.textContent;
+            tempInput.style.position = 'absolute';
+            tempInput.style.left = '-9999px';
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            tempInput.setSelectionRange(0, 99999); // For mobile devices
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showCopyFeedback();
+        }
+        
+        function showCopyFeedback() {
+            const lobbyCode = document.getElementById('lobbyCode');
+            const originalText = lobbyCode.textContent;
+            const originalClass = lobbyCode.className;
+            
+            // Visual feedback
+            lobbyCode.textContent = '✓ Kopyalandı!';
+            lobbyCode.className = 'text-success';
+            lobbyCode.style.fontWeight = 'bold';
+            
+            // 2 saniye sonra geri al
+            setTimeout(() => {
+                lobbyCode.textContent = originalText;
+                lobbyCode.className = originalClass;
+                lobbyCode.style.fontWeight = 'normal';
+            }, 2000);
+        }
+    </script>
+}
