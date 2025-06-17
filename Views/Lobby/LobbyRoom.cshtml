@@ -23,6 +23,8 @@
     <div style="width: 140px;"></div> <!-- Spacing için boş div -->
 </div>
 
+
+
 <!-- Kategori Seçimi (Sadece Host Görebilir) -->
 @if (isHost && !Model.IsGameStarted)
 {
@@ -67,6 +69,40 @@
                     </form>
                 </div>
             }
+        </div>
+    </div>
+
+    <!-- Takım Yönetimi (Sadece Host Görebilir) -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-users"></i> Takım Yönetimi</h5>
+        </div>
+        <div class="card-body">
+            <p class="text-info">Oyuncuları takımlara rastgele dağıtabilir veya tüm takım atamalarını sıfırlayabilirsiniz.</p>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <form method="post" action="/Lobby/RandomizeTeams" class="d-inline">
+                        <input type="hidden" name="code" value="@Model.LobbyCode" />
+                        <button type="submit" class="btn btn-success w-100" onclick="return confirm('Oyuncuları rastgele takımlara dağıtmak istediğinizden emin misiniz?')">
+                            <i class="fas fa-random"></i> Rastgele Dağıt
+                        </button>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <form method="post" action="/Lobby/ResetTeams" class="d-inline">
+                        <input type="hidden" name="code" value="@Model.LobbyCode" />
+                        <button type="submit" class="btn btn-warning w-100" onclick="return confirm('Tüm takım atamalarını sıfırlamak istediğinizden emin misiniz?')">
+                            <i class="fas fa-undo"></i> Takımları Sıfırla
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="mt-2">
+                <small class="text-muted">
+                    <i class="fas fa-info-circle"></i> 
+                    Rastgele dağıtma için en az 2 takım seçmeyen oyuncu olması gerekiyor.
+                </small>
+            </div>
         </div>
     </div>
 }
@@ -225,10 +261,8 @@ else
                 }
             }
         }
-    
+    </div>
 </div>
-
-
 
 @if (!Model.IsGameStarted && !string.IsNullOrEmpty(currentPlayerTeam))
 {
@@ -292,17 +326,40 @@ else
 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <script src="/js/peer-hosting.js"></script>
     <script>
+        // Data attributes for peer hosting system
+        document.body.setAttribute('data-lobby-code', '@Model.LobbyCode');
+        document.body.setAttribute('data-player-name', '@currentPlayerName');
+        
         const connection = new signalR.HubConnectionBuilder()
             .withUrl("/LobbyHub")
             .build();
 
         connection.start().then(() => {
             connection.invoke("AddToGroup", "@Model.LobbyCode");
+            // Register player connection
+            connection.invoke("RegisterPlayer", "@currentPlayerName");
         });
 
         connection.on("UpdateLobby", function () {
             location.reload();
+        });
+
+        connection.on("PeerHostRegistered", function (hostIP, hostPort) {
+            console.log(`Peer host registered: ${hostIP}:${hostPort}`);
+            updatePeerHostingUI(hostIP, hostPort, true);
+        });
+
+        connection.on("PeerHostOffline", function () {
+            console.log("Peer host went offline");
+            updatePeerHostingUI(null, null, false);
+        });
+
+        connection.on("LobbyClosed", function (message) {
+            console.log("Lobby closed:", message);
+            alert(message);
+            window.location.href = "/Home/JoinLobby";
         });
 
         function volunteerForTeam(team) {
@@ -361,6 +418,29 @@ else
                 console.error('Gönüllülükten çıkma hatası:', error);
                 alert('Bir hata oluştu');
             });
+        }
+
+        function updatePeerHostingUI(hostIP, hostPort, isOnline) {
+            const peerHostingInfo = document.getElementById('peer-hosting-info');
+            if (peerHostingInfo) {
+                if (isOnline && hostIP && hostPort) {
+                    peerHostingInfo.innerHTML = `
+                        <div class="alert alert-success">
+                            <strong><i class="fas fa-server"></i> Peer Hosting Aktif</strong><br>
+                            Host: @Model.HostPlayerName<br>
+                            IP: ${hostIP}<br>
+                            Port: ${hostPort}
+                        </div>
+                    `;
+                } else {
+                    peerHostingInfo.innerHTML = `
+                        <div class="alert alert-warning">
+                            <strong><i class="fas fa-exclamation-triangle"></i> Peer Host Çevrimdışı</strong><br>
+                            Host bağlantısı kesildi. Oyun devam edemez.
+                        </div>
+                    `;
+                }
+            }
         }
 
         // Oyun başladığında tüm oyuncuları oyun sayfasına yönlendir

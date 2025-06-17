@@ -3,8 +3,8 @@ C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\appsettings.json
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Web.staticwebassets.runtime.json
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Web.staticwebassets.endpoints.json
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Web.exe
-c:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Web.deps.json
-c:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Web.runtimeconfig.json
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Web.deps.json
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Web.runtimeconfig.json
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Web.dll
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Web.pdb
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\Newtonsoft.Json.dll
@@ -26,6 +26,7 @@ C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.csproj.CoreCompileInpu
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.MvcApplicationPartsAssemblyInfo.cache
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.RazorAssemblyInfo.cache
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.RazorAssemblyInfo.cs
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.sourcelink.json
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\rjimswa.dswa.cache.json
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\rjsmrazor.dswa.cache.json
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\rjsmcshtml.dswa.cache.json
@@ -100,9 +101,11 @@ C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\staticwebassets.build.json
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\staticwebassets.build.json.cache
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\staticwebassets.development.json
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\staticwebassets.build.endpoints.json
-c:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.B8B1D04B.Up2Date
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.B8B1D04B.Up2Date
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.dll
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\refint\YourTurn.Web.dll
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.pdb
-c:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.genruntimeconfig.cache
-c:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\ref\YourTurn.Web.dll
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.genruntimeconfig.cache
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\ref\YourTurn.Web.dll
+c:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\9z2kkmglh3-u9jvtyog0w.gz
+c:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\BCrypt.Net-Next.dll

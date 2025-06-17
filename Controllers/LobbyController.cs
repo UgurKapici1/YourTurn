@@ -17,10 +17,10 @@ namespace YourTurn.Web.Controllers
         }
 
         /// <summary>
-        /// Creates a new lobby with the current player as host
+        /// Creates a new lobby with the current player as host and automatically starts peer hosting
         /// </summary>
         [HttpPost]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
             string playerName = GameService.GeneratePlayerName(TempData["PlayerName"]?.ToString());
 
@@ -31,8 +31,18 @@ namespace YourTurn.Web.Controllers
 
             newLobby.Players.Add(GameService.CreatePlayer(playerName));
 
+            // Automatically start peer hosting
+            newLobby.IsPeerHosted = true;
+            newLobby.HostIPAddress = "127.0.0.1"; // Default local IP
+            newLobby.HostPort = 8080; // Default port
+            newLobby.LastHostHeartbeat = DateTime.Now;
+            newLobby.IsHostOnline = true;
+
             LobbyStore.ActiveLobbies.Add(newLobby);
             HttpContext.Session.SetString("PlayerName", playerName);
+
+            // Notify clients about peer hosting
+            await _hubContext.Clients.Group(newLobby.LobbyCode).SendAsync("PeerHostRegistered", newLobby.HostIPAddress, newLobby.HostPort);
 
             return RedirectToAction("LobbyRoom", new { code = newLobby.LobbyCode });
         }
@@ -80,6 +90,27 @@ namespace YourTurn.Web.Controllers
             ViewBag.CurrentPlayerName = HttpContext.Session.GetString("PlayerName");
 
             return View(lobby);
+        }
+
+        /// <summary>
+        /// Gets peer host information for a lobby
+        /// </summary>
+        [HttpGet]
+        public IActionResult GetPeerHostInfo(string code)
+        {
+            var lobby = GameService.FindLobby(code);
+            if (lobby == null)
+                return NotFound("Lobby bulunamadı");
+
+            if (!lobby.IsPeerHosted || !lobby.IsHostOnline)
+                return NotFound("Peer host bulunamadı");
+
+            return Json(new
+            {
+                hostIP = lobby.HostIPAddress,
+                hostPort = lobby.HostPort,
+                isOnline = lobby.IsHostOnline
+            });
         }
 
         /// <summary>
@@ -173,14 +204,26 @@ namespace YourTurn.Web.Controllers
                 var player = lobby.Players.FirstOrDefault(p => p.Name == currentPlayerName);
                 if (player != null)
                 {
+                    // Check if the leaving player is the host
+                    bool isHostLeaving = lobby.HostPlayerName == currentPlayerName;
+                    
                     lobby.Players.Remove(player);
                     
                     if (lobby.Players.Count == 0)
                     {
+                        // No players left, remove the lobby
                         LobbyStore.ActiveLobbies.Remove(lobby);
+                        await _hubContext.Clients.Group(code).SendAsync("LobbyClosed", "Tüm oyuncular ayrıldığı için oda kapatıldı.");
+                    }
+                    else if (isHostLeaving)
+                    {
+                        // Host is leaving, close the lobby and notify all players
+                        LobbyStore.ActiveLobbies.Remove(lobby);
+                        await _hubContext.Clients.Group(code).SendAsync("LobbyClosed", "Host lobiden ayrıldığı için oda kapatıldı.");
                     }
                     else
                     {
+                        // Regular player leaving, transfer host if needed
                         if (lobby.HostPlayerName == currentPlayerName && lobby.Players.Count > 0)
                         {
                             lobby.HostPlayerName = lobby.Players.First().Name;
@@ -312,6 +355,76 @@ namespace YourTurn.Web.Controllers
             {
                 return Json(new { success = false, message = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Randomly assigns players to teams
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> RandomizeTeams(string code)
+        {
+            var lobby = GameService.FindLobby(code);
+            if (lobby == null)
+                return NotFound("Lobby bulunamadı");
+
+            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
+            if (lobby.HostPlayerName != currentPlayerName)
+                return Forbid("Sadece host takımları rastgele dağıtabilir");
+
+            if (lobby.IsGameStarted)
+                return Forbid("Oyun başladıktan sonra takım değişikliği yapılamaz");
+
+            // Get players without teams
+            var unassignedPlayers = lobby.Players.Where(p => string.IsNullOrEmpty(p.Team)).ToList();
+            
+            if (unassignedPlayers.Count < 2)
+            {
+                TempData["Error"] = "En az 2 oyuncu olması gerekiyor!";
+                return RedirectToAction("LobbyRoom", new { code });
+            }
+
+            // Randomly assign players to teams
+            var random = new Random();
+            var shuffledPlayers = unassignedPlayers.OrderBy(x => random.Next()).ToList();
+            
+            for (int i = 0; i < shuffledPlayers.Count; i++)
+            {
+                shuffledPlayers[i].Team = (i % 2 == 0) ? "Sol" : "Sağ";
+            }
+
+            await _hubContext.Clients.Group(code).SendAsync("UpdateLobby");
+            TempData["Success"] = "Oyuncular rastgele takımlara dağıtıldı!";
+
+            return RedirectToAction("LobbyRoom", new { code });
+        }
+
+        /// <summary>
+        /// Resets all team assignments
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> ResetTeams(string code)
+        {
+            var lobby = GameService.FindLobby(code);
+            if (lobby == null)
+                return NotFound("Lobby bulunamadı");
+
+            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
+            if (lobby.HostPlayerName != currentPlayerName)
+                return Forbid("Sadece host takımları sıfırlayabilir");
+
+            if (lobby.IsGameStarted)
+                return Forbid("Oyun başladıktan sonra takım değişikliği yapılamaz");
+
+            // Reset all team assignments
+            foreach (var player in lobby.Players)
+            {
+                player.Team = "";
+            }
+
+            await _hubContext.Clients.Group(code).SendAsync("UpdateLobby");
+            TempData["Success"] = "Tüm takım atamaları sıfırlandı!";
+
+            return RedirectToAction("LobbyRoom", new { code });
         }
 
         public class VolunteerRequest

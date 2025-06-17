@@ -6,6 +6,7 @@ namespace YourTurn.Web.Services
     public static class GameService
     {
         private const int WINNING_SCORE = 5;
+        private const int HOST_TIMEOUT_SECONDS = 30; // Host timeout for heartbeat
 
         /// <summary>
         /// Finds a lobby by its code
@@ -33,6 +34,42 @@ namespace YourTurn.Web.Services
                 Name = playerName,
                 Team = ""
             };
+        }
+
+        /// <summary>
+        /// Checks if a peer host is still online based on heartbeat
+        /// </summary>
+        public static bool IsPeerHostOnline(Lobby lobby)
+        {
+            if (!lobby.IsPeerHosted || lobby.LastHostHeartbeat == null)
+                return false;
+
+            var timeSinceLastHeartbeat = DateTime.Now - lobby.LastHostHeartbeat.Value;
+            return timeSinceLastHeartbeat.TotalSeconds < HOST_TIMEOUT_SECONDS;
+        }
+
+        /// <summary>
+        /// Updates host online status for all lobbies
+        /// </summary>
+        public static void UpdateHostStatuses()
+        {
+            foreach (var lobby in LobbyStore.ActiveLobbies.Where(l => l.IsPeerHosted))
+            {
+                lobby.IsHostOnline = IsPeerHostOnline(lobby);
+            }
+        }
+
+        /// <summary>
+        /// Gets the next available player to become host when current host goes offline
+        /// </summary>
+        public static string? GetNextHost(Lobby lobby)
+        {
+            var currentHostIndex = lobby.Players.FindIndex(p => p.Name == lobby.HostPlayerName);
+            if (currentHostIndex == -1 || lobby.Players.Count <= 1)
+                return null;
+
+            var nextIndex = (currentHostIndex + 1) % lobby.Players.Count;
+            return lobby.Players[nextIndex].Name;
         }
 
         /// <summary>

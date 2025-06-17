@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj": {}
+    "c:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj": {}
   },
   "projects": {
-    "C:\\Users\\pazar\\YourTurn.Application\\YourTurn.Application.csproj": {
+    "c:\\Users\\pazar\\YourTurn.Application\\YourTurn.Application.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\pazar\\YourTurn.Application\\YourTurn.Application.csproj",
+        "projectUniqueName": "c:\\Users\\pazar\\YourTurn.Application\\YourTurn.Application.csproj",
         "projectName": "YourTurn.Application",
-        "projectPath": "C:\\Users\\pazar\\YourTurn.Application\\YourTurn.Application.csproj",
+        "projectPath": "c:\\Users\\pazar\\YourTurn.Application\\YourTurn.Application.csproj",
         "packagesPath": "C:\\Users\\pazar\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\pazar\\YourTurn.Application\\obj\\",
+        "outputPath": "c:\\Users\\pazar\\YourTurn.Application\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\pazar\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -26,8 +26,8 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "C:\\Users\\pazar\\YourTurn.Domain\\YourTurn.Domain.csproj": {
-                "projectPath": "C:\\Users\\pazar\\YourTurn.Domain\\YourTurn.Domain.csproj"
+              "c:\\Users\\pazar\\YourTurn.Domain\\YourTurn.Domain.csproj": {
+                "projectPath": "c:\\Users\\pazar\\YourTurn.Domain\\YourTurn.Domain.csproj"
               },
               "C:\\Users\\pazar\\YourTurn.Infrastructure\\YourTurn.Infrastructure.csproj": {
                 "projectPath": "C:\\Users\\pazar\\YourTurn.Infrastructure\\YourTurn.Infrastructure.csproj"
@@ -70,14 +70,14 @@
         }
       }
     },
-    "C:\\Users\\pazar\\YourTurn.Domain\\YourTurn.Domain.csproj": {
+    "c:\\Users\\pazar\\YourTurn.Domain\\YourTurn.Domain.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\pazar\\YourTurn.Domain\\YourTurn.Domain.csproj",
+        "projectUniqueName": "c:\\Users\\pazar\\YourTurn.Domain\\YourTurn.Domain.csproj",
         "projectName": "YourTurn.Domain",
-        "projectPath": "C:\\Users\\pazar\\YourTurn.Domain\\YourTurn.Domain.csproj",
+        "projectPath": "c:\\Users\\pazar\\YourTurn.Domain\\YourTurn.Domain.csproj",
         "packagesPath": "C:\\Users\\pazar\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\pazar\\YourTurn.Domain\\obj\\",
+        "outputPath": "c:\\Users\\pazar\\YourTurn.Domain\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\pazar\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -151,11 +151,11 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "C:\\Users\\pazar\\YourTurn.Domain\\YourTurn.Domain.csproj": {
-                "projectPath": "C:\\Users\\pazar\\YourTurn.Domain\\YourTurn.Domain.csproj"
+              "c:\\Users\\pazar\\YourTurn.Domain\\YourTurn.Domain.csproj": {
+                "projectPath": "c:\\Users\\pazar\\YourTurn.Domain\\YourTurn.Domain.csproj"
               },
-              "c:\\Users\\pazar\\YourTurn.Persistence\\YourTurn.Persistence.csproj": {
-                "projectPath": "c:\\Users\\pazar\\YourTurn.Persistence\\YourTurn.Persistence.csproj"
+              "C:\\Users\\pazar\\YourTurn.Persistence\\YourTurn.Persistence.csproj": {
+                "projectPath": "C:\\Users\\pazar\\YourTurn.Persistence\\YourTurn.Persistence.csproj"
               }
             }
           }
@@ -195,14 +195,14 @@
         }
       }
     },
-    "c:\\Users\\pazar\\YourTurn.Persistence\\YourTurn.Persistence.csproj": {
+    "C:\\Users\\pazar\\YourTurn.Persistence\\YourTurn.Persistence.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\pazar\\YourTurn.Persistence\\YourTurn.Persistence.csproj",
+        "projectUniqueName": "C:\\Users\\pazar\\YourTurn.Persistence\\YourTurn.Persistence.csproj",
         "projectName": "YourTurn.Persistence",
-        "projectPath": "c:\\Users\\pazar\\YourTurn.Persistence\\YourTurn.Persistence.csproj",
+        "projectPath": "C:\\Users\\pazar\\YourTurn.Persistence\\YourTurn.Persistence.csproj",
         "packagesPath": "C:\\Users\\pazar\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\pazar\\YourTurn.Persistence\\obj\\",
+        "outputPath": "C:\\Users\\pazar\\YourTurn.Persistence\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\pazar\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -254,14 +254,14 @@
         }
       }
     },
-    "C:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj": {
+    "c:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj",
+        "projectUniqueName": "c:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj",
         "projectName": "YourTurn.Web",
-        "projectPath": "C:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj",
+        "projectPath": "c:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj",
         "packagesPath": "C:\\Users\\pazar\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\pazar\\YourTurn.Web\\obj\\",
+        "outputPath": "c:\\Users\\pazar\\YourTurn.Web\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\pazar\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -276,8 +276,8 @@
           "net9.0": {
             "targetAlias": "net9.0",
             "projectReferences": {
-              "C:\\Users\\pazar\\YourTurn.Application\\YourTurn.Application.csproj": {
-                "projectPath": "C:\\Users\\pazar\\YourTurn.Application\\YourTurn.Application.csproj"
+              "c:\\Users\\pazar\\YourTurn.Application\\YourTurn.Application.csproj": {
+                "projectPath": "c:\\Users\\pazar\\YourTurn.Application\\YourTurn.Application.csproj"
               }
             }
           }
@@ -298,6 +298,10 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "dependencies": {
+            "BCrypt.Net-Next": {
+              "target": "Package",
+              "version": "[4.0.3, )"
+            },
             "Microsoft.AspNetCore.SignalR": {
               "target": "Package",
               "version": "[1.2.0, )"

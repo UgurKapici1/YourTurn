@@ -9,5 +9,13 @@ namespace YourTurn.Web.Models
         public List<Player> Players { get; set; } = new();
         public bool IsGameStarted { get; set; } = false;
         public GameState? GameState { get; set; }
+        
+        // Peer-to-Peer Hosting Properties
+        public string? HostConnectionId { get; set; }
+        public string? HostIPAddress { get; set; }
+        public int? HostPort { get; set; }
+        public bool IsPeerHosted { get; set; } = false;
+        public DateTime? LastHostHeartbeat { get; set; }
+        public bool IsHostOnline { get; set; } = true;
     }
 }

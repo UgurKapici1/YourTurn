@@ -26,7 +26,16 @@
         <div class="col-12">
             <div class="card bg-dark text-white mb-3">
                 <div class="card-body text-center">
-                    <h4>@Model.Category - Lobby: <span id="lobbyCode" class="text-warning" style="cursor: pointer; user-select: all;" onclick="copyLobbyCode()" title="Kopyalamak için tıklayın">@Model.LobbyCode</span></h4>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div></div> <!-- Spacing -->
+                        <h4>@Model.Category - Lobby: <span id="lobbyCode" class="text-warning" style="cursor: pointer; user-select: all;" onclick="copyLobbyCode()" title="Kopyalamak için tıklayın">@Model.LobbyCode</span></h4>
+                        @if (Model.HostPlayerName == currentPlayerName)
+                        {
+                            <button class="btn btn-warning btn-sm" onclick="resetGame()" title="Oyunu sıfırla ve lobiye dön">
+                                <i class="fas fa-undo"></i> Oyunu Sıfırla
+                            </button>
+                        }
+                    </div>
                     <div class="row">
                         <div class="col-4 text-start">
                             <h5 class="text-danger">🔴 Sol Takım: <span id="team1Score">@gameState?.Team1Score</span></h5>
@@ -121,7 +130,7 @@
             <div class="card">
                 <div class="card-header text-center">
                     <h5>⏱️ Süre Çubuğu</h5>
-                    <small class="text-muted">Sol takım solda patlayacak, sağ takım sağda patlayacak!</small>
+
                 </div>
                 <div class="card-body">
                     <div class="position-relative" style="height: 80px;">
@@ -215,7 +224,7 @@
                             onclick="passTurn()" 
                             @(isMyTurn ? "" : "disabled")>
                         <i class="fas @(isMyTurn ? "fa-arrow-right" : "fa-clock")"></i> 
-                        @(isMyTurn ? "Sırayı Geç ve Süreyi Başlat!" : "Sıra Rakipte")
+                        @(isMyTurn ? "Sıra Sende!" : "Sıra Rakipte")
                     </button>
                     @if (isMyTurn)
                     {
@@ -401,8 +410,14 @@
         }).catch(err => console.error("SignalR bağlantı hatası:", err));
 
         connection.on("UpdateGame", function () {
-            console.log("Oyun güncellemesi alındı, sayfa yenileniyor...");
+            console.log("Oyun güncellendi");
             location.reload();
+        });
+
+        connection.on("GameReset", function () {
+            console.log("Oyun sıfırlandı, lobiye dönülüyor");
+            alert("Host oyunu sıfırladı. Lobiye dönülüyor...");
+            window.location.href = "/Lobby/LobbyRoom?code=@Model.LobbyCode";
         });
 
         // Sayfa kapatıldığında gruptan çık
@@ -637,6 +652,31 @@
                 lobbyCode.className = originalClass;
                 lobbyCode.style.fontWeight = 'normal';
             }, 2000);
+        }
+
+        function resetGame() {
+            if (confirm('Oyunu sıfırlamak istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
+                fetch('/Game/ResetGame', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'code=@Model.LobbyCode'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        alert(data.message || 'Bir hata oluştu');
+                    } else {
+                        console.log("Oyun sıfırlandı ve lobiye dönüldü");
+                        window.location.href = data.redirectUrl;
+                    }
+                })
+                .catch(error => {
+                    console.error('Oyun sıfırlama hatası:', error);
+                    alert('Bir hata oluştu');
+                });
+            }
         }
     </script>
 }

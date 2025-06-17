@@ -1,4 +1,5 @@
 using YourTurn.Web.Hubs;
+using YourTurn.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,6 +8,9 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
 builder.Services.AddSession();
+
+// Add background services
+builder.Services.AddHostedService<PeerHostingService>();
 
 var app = builder.Build();
 

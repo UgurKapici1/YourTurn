@@ -269,5 +269,85 @@ namespace YourTurn.Web.Controllers
             
             return RedirectToAction("Game", new { code });
         }
+
+        /// <summary>
+        /// Allows the host to reset the game and return to lobby
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> ResetGame(string code)
+        {
+            try
+            {
+                var lobby = GameService.FindLobby(code);
+                if (lobby == null)
+                    return Json(new { success = false, message = "Lobby bulunamadı" });
+
+                var currentPlayerName = HttpContext.Session.GetString("PlayerName");
+                
+                // Only host can reset the game
+                if (lobby.HostPlayerName != currentPlayerName)
+                    return Json(new { success = false, message = "Sadece host oyunu sıfırlayabilir" });
+
+                // Reset game state
+                lobby.IsGameStarted = false;
+                lobby.GameState = null;
+
+                // Notify all players that game is reset
+                await _hubContext.Clients.Group(code).SendAsync("GameReset");
+
+                return Json(new { success = true, redirectUrl = Url.Action("LobbyRoom", "Lobby", new { code }) });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Starts a new round with the same or new category
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> StartNewRoundWithSameOrNewCategory(string code, string category)
+        {
+            var lobby = GameService.FindLobby(code);
+            if (lobby == null)
+                return NotFound();
+
+            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
+            
+            // Only host can start a new round with the same or new category
+            if (lobby.HostPlayerName != currentPlayerName)
+                return Forbid();
+
+            // Only allow category change when game is not active
+            if (lobby.GameState?.IsGameActive == true)
+                return Forbid();
+
+            // If category is empty, keep the current one
+            if (!string.IsNullOrEmpty(category))
+            {
+                lobby.Category = category;
+            }
+
+            // Start new round with preserved scores
+            var team1Volunteer = lobby.GameState.Team1Volunteer;
+            var team2Volunteer = lobby.GameState.Team2Volunteer;
+            
+            lobby.GameState = GameService.InitializeNewRound(
+                lobby.Category, 
+                lobby.GameState.Team1Score, 
+                lobby.GameState.Team2Score,
+                team1Volunteer,
+                team2Volunteer
+            );
+
+            // Add a message about which team starts
+            var startingTeam = lobby.GameState.CurrentTurn == team1Volunteer ? "Sol" : "Sağ";
+            TempData["RoundStartMessage"] = $"🎲 Rastgele seçim sonucu {startingTeam} takımı başlıyor!";
+
+            await _hubContext.Clients.Group(code).SendAsync("UpdateGame");
+            
+            return RedirectToAction("Game", new { code });
+        }
     }
 }
