@@ -1,0 +1,210 @@
+@model YourTurn.Web.Controllers.AdminLobbiesViewModel
+@{
+    ViewData["Title"] = "Lobiler";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Lobi Yönetimi</h2>
+                <div>
+                    <a href="@Url.Action("Dashboard", "Admin")" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i>Geri
+                    </a>
+                    <a href="@Url.Action("Logout", "Admin")" class="btn btn-outline-danger">Çıkış</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aktif Lobiler -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0">Aktif Lobiler (@Model.ActiveLobbies.Count)</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.ActiveLobbies.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Lobi Kodu</th>
+                                        <th>Host</th>
+                                        <th>Kategori</th>
+                                        <th>Oyuncu Sayısı</th>
+                                        <th>Oluşturulma</th>
+                                        <th>Durum</th>
+                                        <th>Peer Hosting</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var lobby in Model.ActiveLobbies)
+                                    {
+                                        <tr class="table-warning">
+                                            <td>
+                                                <strong>@lobby.LobbyCode</strong>
+                                            </td>
+                                            <td>@lobby.HostPlayerName</td>
+                                            <td>
+                                                @if (!string.IsNullOrEmpty(lobby.Category))
+                                                {
+                                                    <span class="badge bg-secondary">@lobby.Category</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary">@lobby.Players.Count</span>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">
+                                                    @lobby.CreatedAt.ToString("dd.MM.yyyy HH:mm")
+                                                </small>
+                                            </td>
+                                            <td>
+                                                @if (lobby.IsGameStarted)
+                                                {
+                                                    <span class="badge bg-success">Oyun Başladı</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning">Bekliyor</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (lobby.IsPeerHosted)
+                                                {
+                                                    <span class="badge bg-info">Aktif</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Pasif</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center mb-0">Şu anda aktif lobi bulunmuyor.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Veritabanı Lobileri -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Lobi Geçmişi (@Model.DatabaseLobbies.Count lobi)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Lobi Kodu</th>
+                                    <th>Host</th>
+                                    <th>Kategori</th>
+                                    <th>Oyuncu Sayısı</th>
+                                    <th>Oyun Süresi</th>
+                                    <th>Kazanan</th>
+                                    <th>Final Skor</th>
+                                    <th>Durum</th>
+                                    <th>Oluşturulma</th>
+                                    <th>Bitiş</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var lobby in Model.DatabaseLobbies)
+                                {
+                                    var isActive = lobby.EndedAt == null;
+                                    var duration = lobby.GameDuration.HasValue ? $"{lobby.GameDuration} dk" : "-";
+                                    <tr class="@(isActive ? "table-warning" : "")">
+                                        <td>
+                                            <strong>@lobby.LobbyCode</strong>
+                                        </td>
+                                        <td>@lobby.HostPlayerName</td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(lobby.Category))
+                                            {
+                                                <span class="badge bg-secondary">@lobby.Category</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">@lobby.PlayerCount</span>
+                                        </td>
+                                        <td>@duration</td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(lobby.Winner))
+                                            {
+                                                <span class="badge bg-success">@lobby.Winner</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(lobby.FinalScore))
+                                            {
+                                                <span class="badge bg-info">@lobby.FinalScore</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (isActive)
+                                            {
+                                                <span class="badge bg-warning">Aktif</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Tamamlandı</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                @lobby.CreatedAt.ToString("dd.MM.yyyy HH:mm")
+                                            </small>
+                                        </td>
+                                        <td>
+                                            @if (lobby.EndedAt.HasValue)
+                                            {
+                                                <small class="text-muted">
+                                                    @lobby.EndedAt.Value.ToString("dd.MM.yyyy HH:mm")
+                                                </small>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

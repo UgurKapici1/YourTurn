@@ -1,0 +1,137 @@
+@model YourTurn.Web.Controllers.AdminLogsViewModel
+@{
+    ViewData["Title"] = "Admin Logları";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Admin Logları</h2>
+                <div>
+                    <a href="@Url.Action("Dashboard", "Admin")" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i>Geri
+                    </a>
+                    <a href="@Url.Action("Logout", "Admin")" class="btn btn-outline-danger">Çıkış</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Sistem Logları (@Model.TotalCount kayıt)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Admin</th>
+                                    <th>İşlem</th>
+                                    <th>Detay</th>
+                                    <th>IP Adresi</th>
+                                    <th>User Agent</th>
+                                    <th>Tarih</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var log in Model.Logs)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong>@log.Admin?.Username</strong>
+                                        </td>
+                                        <td>
+                                            @switch (log.Action)
+                                            {
+                                                case "Login":
+                                                    <span class="badge bg-success">@log.Action</span>
+                                                    break;
+                                                case "Logout":
+                                                    <span class="badge bg-warning">@log.Action</span>
+                                                    break;
+                                                case "UpdateSetting":
+                                                    <span class="badge bg-info">@log.Action</span>
+                                                    break;
+                                                default:
+                                                    <span class="badge bg-primary">@log.Action</span>
+                                                    break;
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(log.Details))
+                                            {
+                                                <small>@log.Details</small>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <code>@log.IpAddress</code>
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(log.UserAgent))
+                                            {
+                                                <small class="text-muted" title="@log.UserAgent">
+                                                    @(log.UserAgent.Length > 50 ? log.UserAgent.Substring(0, 50) + "..." : log.UserAgent)
+                                                </small>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                @log.CreatedAt.ToString("dd.MM.yyyy HH:mm:ss")
+                                            </small>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    @if (Model.TotalPages > 1)
+                    {
+                        <nav aria-label="Log sayfaları">
+                            <ul class="pagination justify-content-center">
+                                @if (Model.CurrentPage > 1)
+                                {
+                                    <li class="page-item">
+                                        <a class="page-link" href="@Url.Action("Logs", "Admin", new { page = Model.CurrentPage - 1, pageSize = Model.PageSize })">
+                                            <i class="fas fa-chevron-left"></i> Önceki
+                                        </a>
+                                    </li>
+                                }
+
+                                @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                                {
+                                    <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                        <a class="page-link" href="@Url.Action("Logs", "Admin", new { page = i, pageSize = Model.PageSize })">@i</a>
+                                    </li>
+                                }
+
+                                @if (Model.CurrentPage < Model.TotalPages)
+                                {
+                                    <li class="page-item">
+                                        <a class="page-link" href="@Url.Action("Logs", "Admin", new { page = Model.CurrentPage + 1, pageSize = Model.PageSize })">
+                                            Sonraki <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+                        </nav>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

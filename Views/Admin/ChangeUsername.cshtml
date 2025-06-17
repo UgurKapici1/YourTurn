@@ -1,0 +1,68 @@
+@{
+    ViewData["Title"] = "Kullanıcı Adı Değiştir";
+    Layout = "_Layout";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white text-center">
+                    <h4 class="mb-0">Kullanıcı Adı Değiştir</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        <div class="mb-3">
+                            <label for="currentPassword" class="form-label">Mevcut Şifre</label>
+                            <input type="password" class="form-control" id="currentPassword" name="currentPassword" required>
+                            <div class="form-text">Güvenlik için şifrenizi girmeniz gerekiyor</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newUsername" class="form-label">Yeni Kullanıcı Adı</label>
+                            <input type="text" class="form-control" id="newUsername" name="newUsername" required>
+                            <div class="form-text">En az 3 karakter olmalıdır</div>
+                        </div>
+                        @if (!ViewData.ModelState.IsValid)
+                        {
+                            <div class="alert alert-danger">
+                                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                {
+                                    <div>@error.ErrorMessage</div>
+                                }
+                            </div>
+                        }
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-info">Kullanıcı Adını Değiştir</button>
+                            <a href="@Url.Action("Dashboard", "Admin")" class="btn btn-outline-secondary">İptal</a>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center text-muted">
+                    <small><i class="fas fa-info-circle me-1"></i>Kullanıcı adı değiştirildikten sonra otomatik olarak çıkış yapılacaksınız.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
+            const newUsername = document.getElementById('newUsername');
+
+            form.addEventListener('submit', function(e) {
+                if (newUsername.value.length < 3) {
+                    e.preventDefault();
+                    alert('Yeni kullanıcı adı en az 3 karakter olmalıdır!');
+                    return false;
+                }
+
+                if (!confirm('Kullanıcı adınızı değiştirmek istediğinizden emin misiniz? Bu işlemden sonra otomatik olarak çıkış yapılacaksınız.')) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        });
+    </script>
+} 

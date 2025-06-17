@@ -1,0 +1,142 @@
+@model List<YourTurn.Web.Models.AdminSetting>
+@{
+    ViewData["Title"] = "Ayarlar";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Sistem Ayarları</h2>
+                <div>
+                    <a href="@Url.Action("Dashboard", "Admin")" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i>Geri
+                    </a>
+                    <a href="@Url.Action("Logout", "Admin")" class="btn btn-outline-danger">Çıkış</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Oyun Ayarları</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Ayar Adı</th>
+                                    <th>Değer</th>
+                                    <th>Açıklama</th>
+                                    <th>Son Güncelleme</th>
+                                    <th>Güncelleyen</th>
+                                    <th>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var setting in Model)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong>@setting.SettingKey</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">@setting.SettingValue</span>
+                                        </td>
+                                        <td>@setting.Description</td>
+                                        <td>
+                                            <small class="text-muted">
+                                                @setting.UpdatedAt.ToString("dd.MM.yyyy HH:mm")
+                                            </small>
+                                        </td>
+                                        <td>
+                                            @if (setting.UpdatedByAdmin != null)
+                                            {
+                                                <span class="text-muted">@setting.UpdatedByAdmin.Username</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">Sistem</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#editModal" 
+                                                    data-setting-id="@setting.Id"
+                                                    data-setting-key="@setting.SettingKey"
+                                                    data-setting-value="@setting.SettingValue"
+                                                    data-setting-description="@setting.Description">
+                                                <i class="fas fa-edit me-1"></i>Düzenle
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ayar Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post" action="@Url.Action("UpdateSetting", "Admin")">
+                <div class="modal-body">
+                    <input type="hidden" id="settingId" name="id">
+                    <div class="mb-3">
+                        <label for="settingKey" class="form-label">Ayar Adı</label>
+                        <input type="text" class="form-control" id="settingKey" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="settingValue" class="form-label">Değer</label>
+                        <input type="text" class="form-control" id="settingValue" name="value" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="settingDescription" class="form-label">Açıklama</label>
+                        <input type="text" class="form-control" id="settingDescription" readonly>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const editModal = document.getElementById('editModal');
+            if (editModal) {
+                editModal.addEventListener('show.bs.modal', function(event) {
+                    const button = event.relatedTarget;
+                    const settingId = button.getAttribute('data-setting-id');
+                    const settingKey = button.getAttribute('data-setting-key');
+                    const settingValue = button.getAttribute('data-setting-value');
+                    const settingDescription = button.getAttribute('data-setting-description');
+
+                    document.getElementById('settingId').value = settingId;
+                    document.getElementById('settingKey').value = settingKey;
+                    document.getElementById('settingValue').value = settingValue;
+                    document.getElementById('settingDescription').value = settingDescription;
+                });
+            }
+        });
+    </script>
+} 

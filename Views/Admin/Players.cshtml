@@ -1,0 +1,147 @@
+@model YourTurn.Web.Controllers.AdminPlayersViewModel
+@{
+    ViewData["Title"] = "Oyuncular";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Oyuncular</h2>
+                <div>
+                    <a href="@Url.Action("Dashboard", "Admin")" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i>Geri
+                    </a>
+                    <a href="@Url.Action("Logout", "Admin")" class="btn btn-outline-danger">Çıkış</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aktif Oyuncular -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">Aktif Oyuncular (@Model.ActivePlayers.Count)</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.ActivePlayers.Any())
+                    {
+                        <div class="row">
+                            @foreach (var player in Model.ActivePlayers)
+                            {
+                                <div class="col-md-3 col-sm-6 mb-3">
+                                    <div class="card border-success">
+                                        <div class="card-body text-center">
+                                            <i class="fas fa-user-circle text-success fa-2x mb-2"></i>
+                                            <h6 class="card-title">@player</h6>
+                                            <span class="badge bg-success">Çevrimiçi</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted text-center mb-0">Şu anda aktif oyuncu bulunmuyor.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Veritabanı Oyuncuları -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Tüm Oyuncular (@Model.DatabasePlayers.Count oyuncu)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Oyuncu Adı</th>
+                                    <th>Toplam Oyun</th>
+                                    <th>Galibiyet</th>
+                                    <th>Mağlubiyet</th>
+                                    <th>Kazanma Oranı</th>
+                                    <th>Toplam Skor</th>
+                                    <th>Son Görülme</th>
+                                    <th>Kayıt Tarihi</th>
+                                    <th>Durum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var player in Model.DatabasePlayers)
+                                {
+                                    var winRate = player.TotalGames > 0 ? (double)player.Wins / player.TotalGames * 100 : 0;
+                                    var isActive = Model.ActivePlayers.Contains(player.PlayerName);
+                                    <tr class="@(isActive ? "table-success" : "")">
+                                        <td>
+                                            <strong>@player.PlayerName</strong>
+                                            @if (isActive)
+                                            {
+                                                <i class="fas fa-circle text-success ms-1" title="Çevrimiçi"></i>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">@player.TotalGames</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-success">@player.Wins</span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-danger">@player.Losses</span>
+                                        </td>
+                                        <td>
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar bg-success" style="width: @(winRate)%">
+                                                    @(winRate.ToString("F1"))%
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-info">@player.TotalScore</span>
+                                        </td>
+                                        <td>
+                                            @if (player.LastSeenAt.HasValue)
+                                            {
+                                                <small class="text-muted">
+                                                    @player.LastSeenAt.Value.ToString("dd.MM.yyyy HH:mm")
+                                                </small>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                @player.CreatedAt.ToString("dd.MM.yyyy")
+                                            </small>
+                                        </td>
+                                        <td>
+                                            @if (isActive)
+                                            {
+                                                <span class="badge bg-success">Çevrimiçi</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Çevrimdışı</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 
