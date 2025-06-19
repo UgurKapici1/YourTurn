@@ -22,86 +22,104 @@
     <h2 class="text-center mb-0">Lobi Kodu: <span id="lobbyCode" class="text-warning" style="cursor: pointer; user-select: all;" onclick="copyLobbyCode()" title="Kopyalamak için tıklayın">@Model.LobbyCode</span></h2>
     <div style="width: 140px;"></div> <!-- Spacing için boş div -->
 </div>
-
-
-
-<!-- Kategori Seçimi (Sadece Host Görebilir) -->
+ <!-- Takım Seçmeyen Oyuncular Kutusu (Sol) -->
+        <div class="col-md-5 d-flex justify-content-end">
+            @if (Model.Players.Any(p => string.IsNullOrEmpty(p.Team)))
+            {
+                <div class="card w-100 border-secondary">
+                    <div class="card-header bg-secondary text-white text-center">
+                        <h5 class="mb-0">⚪ Takım Seçmeyenler</h5>
+                    </div>
+                    <div class="card-body p-2">
+                        <ul class="list-group mb-0">
+                            @foreach (var player in Model.Players.Where(p => string.IsNullOrEmpty(p.Team)))
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    @player.Name
+                                    @if (player.Name == currentPlayerName)
+                                    {
+                                        <span class="badge bg-success">Sen</span>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </div>
+            }
+        </div>
 @if (isHost && !Model.IsGameStarted)
 {
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5><i class="fas fa-crown"></i> Oyun Kategorisi Seçimi</h5>
-        </div>
-        <div class="card-body">
-            @if (string.IsNullOrEmpty(Model.Category))
-            {
-                <p class="text-warning">⚠️ Oyunu başlatabilmek için bir kategori seçmelisiniz.</p>
-                <form method="post" action="/Lobby/ChooseCategory" class="row g-3">
-                    <input type="hidden" name="code" value="@Model.LobbyCode" />
-                    <div class="col-md-8">
-                        <select class="form-select" name="category" required>
-                            <option value="">Kategori Seçin</option>
-                            <option value="Genel Kültür">Genel Kültür</option>
-                            <option value="Spor">Spor</option>
-                            <option value="Tarih">Tarih</option>
-                            <option value="Bilim">Bilim</option>
-                            <option value="Sanat">Sanat</option>
-                            <option value="Coğrafya">Coğrafya</option>
-                            <option value="Eğlence">Eğlence</option>
-                            <option value="Teknoloji">Teknoloji</option>
-                        </select>
+    <div class="row mb-4">
+       
+        <!-- Oyun Yönetimi ve Kategori Kartı (Sağ) -->
+        <div class="col-md-7 d-flex justify-content-start">
+            <div class="w-100">
+                <div class="card mb-0" style="max-width: 600px; margin: 0 auto;">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <span><i class="fas fa-crown"></i> Oyun Kategorisi & <i class="fas fa-users"></i> Takım Yönetimi</span>
                     </div>
-                    <div class="col-md-4">
-                        <button type="submit" class="btn btn-primary">Kategori Seç</button>
+                    <div class="card-body">
+                        <!-- Kategori Seçimi (küçültülmüş ve yatay) -->
+                        <div class="row align-items-center mb-2">
+                            <div class="col-auto">
+                                <label for="categorySelect" class="col-form-label mb-0"><strong>Kategori:</strong></label>
+                            </div>
+                            <div class="col">
+                                @if (string.IsNullOrEmpty(Model.Category))
+                                {
+                                    <form method="post" action="/Lobby/ChooseCategory" class="d-flex gap-2">
+                                        <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                        <select class="form-select form-select-sm w-auto" name="category" id="categorySelect" required>
+                                            <option value="">Seçin</option>
+                                            <option value="Genel Kültür">Genel Kültür</option>
+                                            <option value="Spor">Spor</option>
+                                            <option value="Tarih">Tarih</option>
+                                            <option value="Bilim">Bilim</option>
+                                            <option value="Sanat">Sanat</option>
+                                            <option value="Coğrafya">Coğrafya</option>
+                                            <option value="Eğlence">Eğlence</option>
+                                            <option value="Teknoloji">Teknoloji</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-primary btn-sm">Seç</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success fs-6">@Model.Category</span>
+                                    <form method="post" action="/Lobby/ChooseCategory" class="d-inline ms-2">
+                                        <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                        <input type="hidden" name="category" value="" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Değiştir</button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                        <!-- Takım Yönetimi (kompakt) -->
+                        <div class="row g-2 align-items-center">
+                            <div class="col">
+                                <form method="post" action="/Lobby/RandomizeTeams" class="d-inline">
+                                    <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                    <button type="submit" class="btn btn-success btn-sm w-100" onclick="return confirm('Oyuncuları rastgele takımlara dağıtmak istediğinizden emin misiniz?')">
+                                        <i class="fas fa-random"></i> Rastgele Dağıt
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="col">
+                                <form method="post" action="/Lobby/ResetTeams" class="d-inline">
+                                    <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                    <button type="submit" class="btn btn-warning btn-sm w-100" onclick="return confirm('Tüm takım atamalarını sıfırlamak istediğinizden emin misiniz?')">
+                                        <i class="fas fa-undo"></i> Takımları Sıfırla
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i> Rastgele dağıtma için en az 2 takım seçmeyen oyuncu olması gerekiyor.
+                            </small>
+                        </div>
                     </div>
-                </form>
-            }
-            else
-            {
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <p class="mb-0"><strong>Seçilen Kategori:</strong> <span class="badge bg-success fs-6">@Model.Category</span></p>
-                    </div>
-                    <form method="post" action="/Lobby/ChooseCategory" class="d-inline">
-                        <input type="hidden" name="code" value="@Model.LobbyCode" />
-                        <input type="hidden" name="category" value="" />
-                        <button type="submit" class="btn btn-sm btn-outline-secondary">Kategori Değiştir</button>
-                    </form>
                 </div>
-            }
-        </div>
-    </div>
-
-    <!-- Takım Yönetimi (Sadece Host Görebilir) -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5><i class="fas fa-users"></i> Takım Yönetimi</h5>
-        </div>
-        <div class="card-body">
-            <p class="text-info">Oyuncuları takımlara rastgele dağıtabilir veya tüm takım atamalarını sıfırlayabilirsiniz.</p>
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <form method="post" action="/Lobby/RandomizeTeams" class="d-inline">
-                        <input type="hidden" name="code" value="@Model.LobbyCode" />
-                        <button type="submit" class="btn btn-success w-100" onclick="return confirm('Oyuncuları rastgele takımlara dağıtmak istediğinizden emin misiniz?')">
-                            <i class="fas fa-random"></i> Rastgele Dağıt
-                        </button>
-                    </form>
-                </div>
-                <div class="col-md-6">
-                    <form method="post" action="/Lobby/ResetTeams" class="d-inline">
-                        <input type="hidden" name="code" value="@Model.LobbyCode" />
-                        <button type="submit" class="btn btn-warning w-100" onclick="return confirm('Tüm takım atamalarını sıfırlamak istediğinizden emin misiniz?')">
-                            <i class="fas fa-undo"></i> Takımları Sıfırla
-                        </button>
-                    </form>
-                </div>
-            </div>
-            <div class="mt-2">
-                <small class="text-muted">
-                    <i class="fas fa-info-circle"></i> 
-                    Rastgele dağıtma için en az 2 takım seçmeyen oyuncu olması gerekiyor.
-                </small>
             </div>
         </div>
     </div>
@@ -132,135 +150,142 @@ else
     </div>
 }
 
-<!-- Takımda Olmayan Oyuncular -->
-@if (Model.Players.Any(p => string.IsNullOrEmpty(p.Team)))
-{
-    <div class="row mt-4">
-        <div class="col-12">
-            <h4 class="text-secondary">⚪ Takım Seçmeyen Oyuncular</h4>
-            <ul class="list-group mb-3">
-                @foreach (var player in Model.Players.Where(p => string.IsNullOrEmpty(p.Team)))
-                {
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        @player.Name
-                        @if (player.Name == currentPlayerName)
+<div class="row mt-4">
+    <!-- Kırmızı Takım (Sol) -->
+    <div class="col-md-6 d-flex justify-content-end">
+        <div class="card w-75 border-danger">
+            <div class="card-header bg-danger text-white text-center">
+                <h4 class="mb-0">🔴 Kırmızı Takım</h4>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-between" style="min-height: 350px;">
+                <!-- Üstte Gönüllü Ol/Gönüllülükten Çık butonu -->
+                <div class="mb-3 text-center">
+                    @if (currentPlayerTeam == "Sol")
+                    {
+                        if (team1Volunteer != currentPlayerName)
                         {
-                            <span class="badge bg-success">Sen</span>
+                            <button class="btn btn-danger" onclick="volunteerForTeam('Sol')">
+                                <i class="fas fa-hand-paper"></i> Gönüllü Ol
+                            </button>
                         }
-                    </li>
-                }
-            </ul>
+                        else
+                        {
+                            <button class="btn btn-warning" onclick="withdrawVolunteer('Sol')">
+                                <i class="fas fa-times"></i> Gönüllülükten Çık
+                            </button>
+                        }
+                    }
+                </div>
+                <!-- Takım oyuncuları listesi -->
+                <ul class="list-group mb-3">
+                    @foreach (var player in Model.Players.Where(p => p.Team == "Sol"))
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            @player.Name
+                            @if (player.Name == currentPlayerName)
+                            {
+                                <span class="badge bg-success">Sen</span>
+                            }
+                            @if (Model.GameState?.Team1Volunteer == player.Name)
+                            {
+                                <span class="badge bg-danger">Gönüllü</span>
+                            }
+                        </li>
+                    }
+                </ul>
+                <!-- Altta Takıma Katıl butonu veya bilgi -->
+                <div class="text-center mt-auto">
+                    @if (!Model.IsGameStarted)
+                    {
+                        if (currentPlayerTeam != "Sol")
+                        {
+                            <form method="post" action="/Lobby/ChooseTeam">
+                                <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                <input type="hidden" name="playerName" value="@currentPlayerName" />
+                                <input type="hidden" name="team" value="Sol" />
+                                <button type="submit" class="btn btn-danger w-100">
+                                    @(string.IsNullOrEmpty(currentPlayerTeam) ? "Kırmızı Takıma Katıl" : "Kırmızı Takıma Geç")
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <div class="alert alert-success mt-2 mb-0 p-2">
+                                <i class="fas fa-check"></i> Bu takımdasınız
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
         </div>
     </div>
-}
-
-<div class="row mt-4">
-    <!-- Kırmızı Takım -->
-    <div class="col-md-6 border-end">
-        <h4 class="text-danger">🔴 Kırmızı Takım</h4>
-        <ul class="list-group mb-3">
-            @foreach (var player in Model.Players.Where(p => p.Team == "Sol"))
-            {
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    @player.Name
-                    @if (player.Name == currentPlayerName)
+    <!-- Mavi Takım (Sağ) -->
+    <div class="col-md-6 d-flex justify-content-start">
+        <div class="card w-75 border-primary">
+            <div class="card-header bg-primary text-white text-center">
+                <h4 class="mb-0">🔵 Mavi Takım</h4>
+            </div>
+            <div class="card-body d-flex flex-column justify-content-between" style="min-height: 350px;">
+                <!-- Üstte Gönüllü Ol/Gönüllülükten Çık butonu -->
+                <div class="mb-3 text-center">
+                    @if (currentPlayerTeam == "Sağ")
                     {
-                        <span class="badge bg-success">Sen</span>
+                        if (team2Volunteer != currentPlayerName)
+                        {
+                            <button class="btn btn-primary" onclick="volunteerForTeam('Sağ')">
+                                <i class="fas fa-hand-paper"></i> Gönüllü Ol
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="btn btn-warning" onclick="withdrawVolunteer('Sağ')">
+                                <i class="fas fa-times"></i> Gönüllülükten Çık
+                            </button>
+                        }
                     }
-                    @if (Model.GameState?.Team1Volunteer == player.Name)
-                    {
-                        <span class="badge bg-danger">Gönüllü</span>
-                    }
-                </li>
-            }
-        </ul>
-
-        @if (!Model.IsGameStarted)
-        {
-            @if (currentPlayerTeam != "Sol")
-            {
-                <form method="post" action="/Lobby/ChooseTeam" class="mt-2">
-                    <input type="hidden" name="code" value="@Model.LobbyCode" />
-                    <input type="hidden" name="playerName" value="@currentPlayerName" />
-                    <input type="hidden" name="team" value="Sol" />
-                    <button type="submit" class="btn btn-danger">
-                        @(string.IsNullOrEmpty(currentPlayerTeam) ? "Kırmızı Takıma Katıl" : "Kırmızı Takıma Geç")
-                    </button>
-                </form>
-            }
-            else
-            {
-                <div class="alert alert-success mt-2">
-                    <i class="fas fa-check"></i> Bu takımdasınız
                 </div>
-                @if (team1Volunteer != currentPlayerName)
-                {
-                    <button class="btn btn-danger mt-2" onclick="volunteerForTeam('Sol')">
-                        <i class="fas fa-hand-paper"></i> Gönüllü Ol
-                    </button>
-                }
-                else
-                {
-                    <button class="btn btn-warning mt-2" onclick="withdrawVolunteer('Sol')">
-                        <i class="fas fa-times"></i> Gönüllülükten Çık
-                    </button>
-                }
-            }
-        }
-    </div>
-
-    <!-- Mavi Takım -->
-    <div class="col-md-6">
-        <h4 class="text-primary">🔵 Mavi Takım</h4>
-        <ul class="list-group mb-3">
-            @foreach (var player in Model.Players.Where(p => p.Team == "Sağ"))
-            {
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                    @player.Name
-                    @if (player.Name == currentPlayerName)
+                <!-- Takım oyuncuları listesi -->
+                <ul class="list-group mb-3">
+                    @foreach (var player in Model.Players.Where(p => p.Team == "Sağ"))
                     {
-                        <span class="badge bg-success">Sen</span>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            @player.Name
+                            @if (player.Name == currentPlayerName)
+                            {
+                                <span class="badge bg-success">Sen</span>
+                            }
+                            @if (Model.GameState?.Team2Volunteer == player.Name)
+                            {
+                                <span class="badge bg-primary">Gönüllü</span>
+                            }
+                        </li>
                     }
-                    @if (Model.GameState?.Team2Volunteer == player.Name)
+                </ul>
+                <!-- Altta Takıma Katıl butonu veya bilgi -->
+                <div class="text-center mt-auto">
+                    @if (!Model.IsGameStarted)
                     {
-                        <span class="badge bg-primary">Gönüllü</span>
+                        if (currentPlayerTeam != "Sağ")
+                        {
+                            <form method="post" action="/Lobby/ChooseTeam">
+                                <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                <input type="hidden" name="playerName" value="@currentPlayerName" />
+                                <input type="hidden" name="team" value="Sağ" />
+                                <button type="submit" class="btn btn-primary w-100">
+                                    @(string.IsNullOrEmpty(currentPlayerTeam) ? "Mavi Takıma Katıl" : "Mavi Takıma Geç")
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <div class="alert alert-success mt-2 mb-0 p-2">
+                                <i class="fas fa-check"></i> Bu takımdasınız
+                            </div>
+                        }
                     }
-                </li>
-            }
-        </ul>
-
-        @if (!Model.IsGameStarted)
-        {
-            @if (currentPlayerTeam != "Sağ")
-            {
-                <form method="post" action="/Lobby/ChooseTeam" class="mt-2">
-                    <input type="hidden" name="code" value="@Model.LobbyCode" />
-                    <input type="hidden" name="playerName" value="@currentPlayerName" />
-                    <input type="hidden" name="team" value="Sağ" />
-                    <button type="submit" class="btn btn-primary">
-                        @(string.IsNullOrEmpty(currentPlayerTeam) ? "Mavi Takıma Katıl" : "Mavi Takıma Geç")
-                    </button>
-                </form>
-            }
-            else
-            {
-                <div class="alert alert-success mt-2">
-                    <i class="fas fa-check"></i> Bu takımdasınız
                 </div>
-                @if (team2Volunteer != currentPlayerName)
-                {
-                    <button class="btn btn-primary mt-2" onclick="volunteerForTeam('Sağ')">
-                        <i class="fas fa-hand-paper"></i> Gönüllü Ol
-                    </button>
-                }
-                else
-                {
-                    <button class="btn btn-warning mt-2" onclick="withdrawVolunteer('Sağ')">
-                        <i class="fas fa-times"></i> Gönüllülükten Çık
-                    </button>
-                }
-            }
-        }
+            </div>
+        </div>
     </div>
 </div>
 
