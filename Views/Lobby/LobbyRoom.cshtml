@@ -22,15 +22,19 @@
     <h2 class="text-center mb-0">Lobi Kodu: <span id="lobbyCode" class="text-warning" style="cursor: pointer; user-select: all;" onclick="copyLobbyCode()" title="Kopyalamak için tıklayın">@Model.LobbyCode</span></h2>
     <div style="width: 140px;"></div> <!-- Spacing için boş div -->
 </div>
- <!-- Takım Seçmeyen Oyuncular Kutusu (Sol) -->
-        <div class="col-md-5 d-flex justify-content-end">
-            @if (Model.Players.Any(p => string.IsNullOrEmpty(p.Team)))
-            {
-                <div class="card w-100 border-secondary">
-                    <div class="card-header bg-secondary text-white text-center">
-                        <h5 class="mb-0">⚪ Takım Seçmeyenler</h5>
-                    </div>
-                    <div class="card-body p-2">
+
+@if (isHost && !Model.IsGameStarted)
+{
+    <div class="row mb-4 justify-content-center">
+        <!-- Takım Seçmeyen Oyuncular Card -->
+        <div class="col-md-4 d-flex justify-content-end">
+            <div class="card w-100 border-secondary">
+                <div class="card-header bg-secondary text-white text-center">
+                    <h5 class="mb-0">⚪ Takım Seçmeyen Oyuncular</h5>
+                </div>
+                <div class="card-body p-2">
+                    @if (Model.Players.Any(p => string.IsNullOrEmpty(p.Team)))
+                    {
                         <ul class="list-group mb-0">
                             @foreach (var player in Model.Players.Where(p => string.IsNullOrEmpty(p.Team)))
                             {
@@ -43,81 +47,79 @@
                                 </li>
                             }
                         </ul>
-                    </div>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-3">Tüm oyuncular bir takıma katıldı.</div>
+                    }
                 </div>
-            }
+            </div>
         </div>
-@if (isHost && !Model.IsGameStarted)
-{
-    <div class="row mb-4">
-       
-        <!-- Oyun Yönetimi ve Kategori Kartı (Sağ) -->
-        <div class="col-md-7 d-flex justify-content-start">
-            <div class="w-100">
-                <div class="card mb-0" style="max-width: 600px; margin: 0 auto;">
-                    <div class="card-header d-flex align-items-center justify-content-between">
-                        <span><i class="fas fa-crown"></i> Oyun Kategorisi & <i class="fas fa-users"></i> Takım Yönetimi</span>
+        <!-- Oyun Yönetimi & Kategori Card -->
+        <div class="col-md-5 d-flex justify-content-start">
+            <div class="card mb-4" style="max-width: 600px; width:100%">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span><i class="fas fa-crown"></i> Oyun Kategorisi & <i class="fas fa-users"></i> Takım Yönetimi</span>
+                </div>
+                <div class="card-body">
+                    <!-- Kategori Seçimi (küçültülmüş ve yatay) -->
+                    <div class="row align-items-center mb-2">
+                        <div class="col-auto">
+                            <label for="categorySelect" class="col-form-label mb-0"><strong>Kategori:</strong></label>
+                        </div>
+                        <div class="col">
+                            @if (string.IsNullOrEmpty(Model.Category))
+                            {
+                                <form method="post" action="/Lobby/ChooseCategory" class="d-flex gap-2">
+                                    <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                    <select class="form-select form-select-sm w-auto" name="category" id="categorySelect" required>
+                                        <option value="">Seçin</option>
+                                        <option value="Genel Kültür">Genel Kültür</option>
+                                        <option value="Spor">Spor</option>
+                                        <option value="Tarih">Tarih</option>
+                                        <option value="Bilim">Bilim</option>
+                                        <option value="Sanat">Sanat</option>
+                                        <option value="Coğrafya">Coğrafya</option>
+                                        <option value="Eğlence">Eğlence</option>
+                                        <option value="Teknoloji">Teknoloji</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-primary btn-sm">Seç</button>
+                                </form>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success fs-6">@Model.Category</span>
+                                <form method="post" action="/Lobby/ChooseCategory" class="d-inline ms-2">
+                                    <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                    <input type="hidden" name="category" value="" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary">Değiştir</button>
+                                </form>
+                            }
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <!-- Kategori Seçimi (küçültülmüş ve yatay) -->
-                        <div class="row align-items-center mb-2">
-                            <div class="col-auto">
-                                <label for="categorySelect" class="col-form-label mb-0"><strong>Kategori:</strong></label>
-                            </div>
-                            <div class="col">
-                                @if (string.IsNullOrEmpty(Model.Category))
-                                {
-                                    <form method="post" action="/Lobby/ChooseCategory" class="d-flex gap-2">
-                                        <input type="hidden" name="code" value="@Model.LobbyCode" />
-                                        <select class="form-select form-select-sm w-auto" name="category" id="categorySelect" required>
-                                            <option value="">Seçin</option>
-                                            <option value="Genel Kültür">Genel Kültür</option>
-                                            <option value="Spor">Spor</option>
-                                            <option value="Tarih">Tarih</option>
-                                            <option value="Bilim">Bilim</option>
-                                            <option value="Sanat">Sanat</option>
-                                            <option value="Coğrafya">Coğrafya</option>
-                                            <option value="Eğlence">Eğlence</option>
-                                            <option value="Teknoloji">Teknoloji</option>
-                                        </select>
-                                        <button type="submit" class="btn btn-primary btn-sm">Seç</button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <span class="badge bg-success fs-6">@Model.Category</span>
-                                    <form method="post" action="/Lobby/ChooseCategory" class="d-inline ms-2">
-                                        <input type="hidden" name="code" value="@Model.LobbyCode" />
-                                        <input type="hidden" name="category" value="" />
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Değiştir</button>
-                                    </form>
-                                }
-                            </div>
+                    <!-- Takım Yönetimi (kompakt) -->
+                    <div class="row g-2 align-items-center">
+                        <div class="col">
+                            <form method="post" action="/Lobby/RandomizeTeams" class="d-inline">
+                                <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                <button type="submit" class="btn btn-success btn-sm w-100" onclick="return confirm('Oyuncuları rastgele takımlara dağıtmak istediğinizden emin misiniz?')">
+                                    <i class="fas fa-random"></i> Rastgele Dağıt
+                                </button>
+                            </form>
                         </div>
-                        <!-- Takım Yönetimi (kompakt) -->
-                        <div class="row g-2 align-items-center">
-                            <div class="col">
-                                <form method="post" action="/Lobby/RandomizeTeams" class="d-inline">
-                                    <input type="hidden" name="code" value="@Model.LobbyCode" />
-                                    <button type="submit" class="btn btn-success btn-sm w-100" onclick="return confirm('Oyuncuları rastgele takımlara dağıtmak istediğinizden emin misiniz?')">
-                                        <i class="fas fa-random"></i> Rastgele Dağıt
-                                    </button>
-                                </form>
-                            </div>
-                            <div class="col">
-                                <form method="post" action="/Lobby/ResetTeams" class="d-inline">
-                                    <input type="hidden" name="code" value="@Model.LobbyCode" />
-                                    <button type="submit" class="btn btn-warning btn-sm w-100" onclick="return confirm('Tüm takım atamalarını sıfırlamak istediğinizden emin misiniz?')">
-                                        <i class="fas fa-undo"></i> Takımları Sıfırla
-                                    </button>
-                                </form>
-                            </div>
+                        <div class="col">
+                            <form method="post" action="/Lobby/ResetTeams" class="d-inline">
+                                <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                <button type="submit" class="btn btn-warning btn-sm w-100" onclick="return confirm('Tüm takım atamalarını sıfırlamak istediğinizden emin misiniz?')">
+                                    <i class="fas fa-undo"></i> Takımları Sıfırla
+                                </button>
+                            </form>
                         </div>
-                        <div class="mt-2">
-                            <small class="text-muted">
-                                <i class="fas fa-info-circle"></i> Rastgele dağıtma için en az 2 takım seçmeyen oyuncu olması gerekiyor.
-                            </small>
-                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle"></i> Rastgele dağıtma için en az 2 takım seçmeyen oyuncu olması gerekiyor.
+                        </small>
                     </div>
                 </div>
             </div>

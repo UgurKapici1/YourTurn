@@ -3440,11 +3440,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj",
+      "projectUniqueName": "c:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj",
       "projectName": "YourTurn.Web",
-      "projectPath": "C:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj",
+      "projectPath": "c:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj",
       "packagesPath": "C:\\Users\\pazar\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\pazar\\YourTurn.Web\\obj\\",
+      "outputPath": "c:\\Users\\pazar\\YourTurn.Web\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\pazar\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -3459,8 +3459,8 @@
         "net9.0": {
           "targetAlias": "net9.0",
           "projectReferences": {
-            "C:\\Users\\pazar\\YourTurn.Application\\YourTurn.Application.csproj": {
-              "projectPath": "C:\\Users\\pazar\\YourTurn.Application\\YourTurn.Application.csproj"
+            "c:\\Users\\pazar\\YourTurn.Application\\YourTurn.Application.csproj": {
+              "projectPath": "c:\\Users\\pazar\\YourTurn.Application\\YourTurn.Application.csproj"
             }
           }
         }
