@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "p331VWuzhd8=",
+  "dgSpecHash": "sI9sVPUHxUk=",
   "success": true,
-  "projectFilePath": "c:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj",
+  "projectFilePath": "C:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\pazar\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512",
     "C:\\Users\\pazar\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",

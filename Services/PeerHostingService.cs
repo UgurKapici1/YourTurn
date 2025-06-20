@@ -5,18 +5,21 @@ using YourTurn.Web.Stores;
 
 namespace YourTurn.Web.Services
 {
+    // Eşler arası barındırma (peer hosting) durumunu periyodik olarak kontrol eden arka plan servisi
     public class PeerHostingService : BackgroundService
     {
         private readonly ILogger<PeerHostingService> _logger;
         private readonly IServiceProvider _serviceProvider;
         private readonly TimeSpan _checkInterval = TimeSpan.FromSeconds(30);
 
+        // Gerekli servisleri enjekte eder
         public PeerHostingService(ILogger<PeerHostingService> logger, IServiceProvider serviceProvider)
         {
             _logger = logger;
             _serviceProvider = serviceProvider;
         }
 
+        // Arka plan servisinin ana çalışma döngüsü
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             _logger.LogInformation("Peer Hosting Service started");
@@ -42,6 +45,7 @@ namespace YourTurn.Web.Services
             _logger.LogInformation("Peer Hosting Service stopped");
         }
 
+        // Eş ana bilgisayarları kontrol eder
         private async Task CheckPeerHostsAsync()
         {
             var peerHostedLobbies = LobbyStore.ActiveLobbies.Where(l => l.IsPeerHosted).ToList();
@@ -50,7 +54,7 @@ namespace YourTurn.Web.Services
             {
                 try
                 {
-                    // Check if host is still online
+                    // Ana bilgisayarın hala çevrimiçi olup olmadığını kontrol et
                     var isOnline = GameService.IsPeerHostOnline(lobby);
                     
                     if (!isOnline && lobby.IsHostOnline)
@@ -58,8 +62,8 @@ namespace YourTurn.Web.Services
                         _logger.LogWarning($"Peer host went offline for lobby {lobby.LobbyCode}");
                         lobby.IsHostOnline = false;
 
-                        // Host is offline, but we don't transfer host anymore
-                        // Just mark the lobby as having an offline host
+                        // Ana bilgisayar çevrimdışı, ancak artık ana bilgisayar devri yapmıyoruz
+                        // Sadece lobiyi çevrimdışı bir ana bilgisayara sahip olarak işaretle
                         await NotifyHostOfflineAsync(lobby.LobbyCode);
                     }
                     else if (isOnline && !lobby.IsHostOnline)
@@ -75,6 +79,7 @@ namespace YourTurn.Web.Services
             }
         }
 
+        // Ana bilgisayarın çevrimdışı olduğunu istemcilere bildirir
         private async Task NotifyHostOfflineAsync(string lobbyCode)
         {
             try

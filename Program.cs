@@ -4,19 +4,20 @@ using YourTurn.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 
+// Uygulama oluşturucusu başlatılıyor
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Servisler konteynere ekleniyor
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
 builder.Services.AddSession();
 
-// Add Entity Framework Core with PostgreSQL
+// Entity Framework Core ve PostgreSQL veritabanı bağlantısı ekleniyor
 builder.Services.AddDbContext<YourTurnDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add Authentication and Authorization
+// Kimlik doğrulama ve yetkilendirme servisleri ekleniyor
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -29,19 +30,21 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddAuthorization();
 
-// Add background services
+// Arka plan servisleri ekleniyor
 builder.Services.AddHostedService<PeerHostingService>();
 
+// Uygulama oluşturuluyor
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// HTTP istek işlem hattı yapılandırılıyor
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+    // Varsayılan HSTS değeri 30 gündür. Üretim senaryoları için bunu değiştirmek isteyebilirsiniz, bkz. https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
+// SignalR hub'ları eşleniyor
 app.MapHub<LobbyHub>("/lobbyHub");
 app.MapHub<GameHub>("/GameHub");
 app.UseSession();
@@ -49,14 +52,17 @@ app.UseSession();
 app.UseHttpsRedirection();
 app.UseRouting();
 
+// Kimlik doğrulama ve yetkilendirme middleware'leri kullanılıyor
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
 
+// Varsayılan rota yapılandırılıyor
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
+// Uygulama çalıştırılıyor
 app.Run();

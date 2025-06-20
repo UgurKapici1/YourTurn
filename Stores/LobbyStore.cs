@@ -3,40 +3,17 @@ using System.Collections.Concurrent;
 
 namespace YourTurn.Web.Stores
 {
+    // Aktif lobileri ve oyuncu bağlantılarını bellekte tutan statik sınıf
     public static class LobbyStore
     {
         private static readonly object _lobbyLock = new object();
         public static List<Lobby> ActiveLobbies { get; set; } = new List<Lobby>();
         
-        // Connection tracking for better lobby management - using ConcurrentDictionary for thread safety
+        // Daha iyi lobi yönetimi için bağlantı takibi - iş parçacığı güvenliği için ConcurrentDictionary kullanılıyor
         public static ConcurrentDictionary<string, string> ConnectionToPlayer { get; set; } = new ConcurrentDictionary<string, string>();
         public static ConcurrentDictionary<string, List<string>> PlayerToConnections { get; set; } = new ConcurrentDictionary<string, List<string>>();
         
-        /// <summary>
-        /// Thread-safe way to add a lobby
-        /// </summary>
-        public static void AddLobby(Lobby lobby)
-        {
-            lock (_lobbyLock)
-            {
-                ActiveLobbies.Add(lobby);
-            }
-        }
-        
-        /// <summary>
-        /// Thread-safe way to remove a lobby
-        /// </summary>
-        public static void RemoveLobby(Lobby lobby)
-        {
-            lock (_lobbyLock)
-            {
-                ActiveLobbies.Remove(lobby);
-            }
-        }
-        
-        /// <summary>
-        /// Thread-safe way to get all active lobbies
-        /// </summary>
+        // İş parçacığı güvenli bir şekilde tüm aktif lobileri alır
         public static List<Lobby> GetActiveLobbies()
         {
             lock (_lobbyLock)
@@ -45,23 +22,10 @@ namespace YourTurn.Web.Stores
             }
         }
         
-        /// <summary>
-        /// Thread-safe way to find a lobby by code
-        /// </summary>
-        public static Lobby? FindLobbyByCode(string code)
-        {
-            lock (_lobbyLock)
-            {
-                return ActiveLobbies.FirstOrDefault(l => l.LobbyCode == code);
-            }
-        }
-        
-        /// <summary>
-        /// Registers a connection with a player name
-        /// </summary>
+        // Bir bağlantıyı bir oyuncu adıyla kaydeder
         public static void RegisterConnection(string connectionId, string playerName)
         {
-            // Remove any existing connection for this player to avoid duplicates
+            // Bu oyuncu için mevcut bağlantıyı kaldırarak kopyaları önle
             UnregisterConnection(connectionId);
             
             ConnectionToPlayer.TryAdd(connectionId, playerName);
@@ -79,9 +43,7 @@ namespace YourTurn.Web.Stores
                 });
         }
         
-        /// <summary>
-        /// Unregisters a connection
-        /// </summary>
+        // Bir bağlantının kaydını siler
         public static void UnregisterConnection(string connectionId)
         {
             if (ConnectionToPlayer.TryRemove(connectionId, out var playerName))
@@ -95,7 +57,7 @@ namespace YourTurn.Web.Stores
                         return existingList;
                     });
                 
-                // If no more connections for this player, remove the player entry
+                // Bu oyuncu için başka bağlantı kalmadıysa, oyuncu girişini kaldır
                 if (PlayerToConnections.TryGetValue(playerName, out var connections) && connections.Count == 0)
                 {
                     PlayerToConnections.TryRemove(playerName, out _);
@@ -103,30 +65,11 @@ namespace YourTurn.Web.Stores
             }
         }
         
-        /// <summary>
-        /// Gets player name from connection ID
-        /// </summary>
+        // Bağlantı ID'sinden oyuncu adını alır
         public static string? GetPlayerNameFromConnection(string connectionId)
         {
             ConnectionToPlayer.TryGetValue(connectionId, out var playerName);
             return playerName;
-        }
-        
-        /// <summary>
-        /// Gets all connection IDs for a player
-        /// </summary>
-        public static List<string> GetConnectionsFromPlayer(string playerName)
-        {
-            PlayerToConnections.TryGetValue(playerName, out var connections);
-            return connections ?? new List<string>();
-        }
-        
-        /// <summary>
-        /// Checks if a player has any active connections
-        /// </summary>
-        public static bool HasActiveConnections(string playerName)
-        {
-            return PlayerToConnections.TryGetValue(playerName, out var connections) && connections.Count > 0;
         }
     }
 }

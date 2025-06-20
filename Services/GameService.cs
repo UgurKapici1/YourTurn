@@ -3,30 +3,25 @@ using YourTurn.Web.Stores;
 
 namespace YourTurn.Web.Services
 {
+    // Oyunla ilgili temel mantığı ve yardımcı fonksiyonları içeren servis
     public static class GameService
     {
         private const int WINNING_SCORE = 5;
-        private const int HOST_TIMEOUT_SECONDS = 30; // Host timeout for heartbeat
+        private const int HOST_TIMEOUT_SECONDS = 30; // Ana bilgisayarın sinyal gönderme zaman aşımı
 
-        /// <summary>
-        /// Finds a lobby by its code
-        /// </summary>
+        // Bir lobiyi koduna göre bulur
         public static Lobby? FindLobby(string code)
         {
             return LobbyStore.ActiveLobbies.FirstOrDefault(l => l.LobbyCode == code);
         }
 
-        /// <summary>
-        /// Finds a lobby by its code with case-insensitive comparison
-        /// </summary>
+        // Bir lobiyi koduna göre (büyük/küçük harf duyarsız) bulur
         public static Lobby? FindLobbyIgnoreCase(string code)
         {
             return LobbyStore.ActiveLobbies.FirstOrDefault(l => l.LobbyCode.Equals(code, StringComparison.OrdinalIgnoreCase));
         }
 
-        /// <summary>
-        /// Creates a new player with the given name
-        /// </summary>
+        // Verilen isimle yeni bir oyuncu oluşturur
         public static YourTurn.Web.Models.Player CreatePlayer(string playerName)
         {
             return new YourTurn.Web.Models.Player
@@ -36,9 +31,7 @@ namespace YourTurn.Web.Services
             };
         }
 
-        /// <summary>
-        /// Checks if a peer host is still online based on heartbeat
-        /// </summary>
+        // Bir eş ana bilgisayarın hala çevrimiçi olup olmadığını sinyaline göre kontrol eder
         public static bool IsPeerHostOnline(Lobby lobby)
         {
             if (!lobby.IsPeerHosted || lobby.LastHostHeartbeat == null)
@@ -48,9 +41,7 @@ namespace YourTurn.Web.Services
             return timeSinceLastHeartbeat.TotalSeconds < HOST_TIMEOUT_SECONDS;
         }
 
-        /// <summary>
-        /// Updates host online status for all lobbies
-        /// </summary>
+        // Tüm lobiler için ana bilgisayar çevrimiçi durumunu günceller
         public static void UpdateHostStatuses()
         {
             foreach (var lobby in LobbyStore.ActiveLobbies.Where(l => l.IsPeerHosted))
@@ -59,89 +50,74 @@ namespace YourTurn.Web.Services
             }
         }
 
-        /// <summary>
-        /// Gets the next available player to become host when current host goes offline
-        /// </summary>
-        public static string? GetNextHost(Lobby lobby)
+        // Belirtilen kategoriden rastgele bir soru döndürür
+        public static QuestionAnswer GetRandomQuestion(string category)
         {
-            var currentHostIndex = lobby.Players.FindIndex(p => p.Name == lobby.HostPlayerName);
-            if (currentHostIndex == -1 || lobby.Players.Count <= 1)
-                return null;
-
-            var nextIndex = (currentHostIndex + 1) % lobby.Players.Count;
-            return lobby.Players[nextIndex].Name;
-        }
-
-        /// <summary>
-        /// Returns a random question from the specified category
-        /// </summary>
-        public static string GetRandomQuestion(string category)
-        {
-            var questions = new Dictionary<string, List<string>>
+            var questions = new Dictionary<string, List<QuestionAnswer>>
             {
-                ["Genel Kültür"] = new List<string>
+                ["Genel Kültür"] = new List<QuestionAnswer>
                 {
-                    "Türkiye'nin başkenti neresidir?",
-                    "Dünyanın en büyük okyanusu hangisidir?",
-                    "Einstein'ın ünlü formülü nedir?",
-                    "Mona Lisa tablosunu kim yapmıştır?",
-                    "Ay'a ilk ayak basan kişi kimdir?"
+                    new QuestionAnswer { Question = "Türkiye'nin başkenti neresidir?", Answer = "Ankara" },
+                    new QuestionAnswer { Question = "Dünyanın en büyük okyanusu hangisidir?", Answer = "Pasifik Okyanusu" },
+                    new QuestionAnswer { Question = "Einstein'ın ünlü formülü nedir?", Answer = "E=mc^2" },
+                    new QuestionAnswer { Question = "Mona Lisa tablosunu kim yapmıştır?", Answer = "Leonardo da Vinci" },
+                    new QuestionAnswer { Question = "Ay'a ilk ayak basan kişi kimdir?", Answer = "Neil Armstrong" }
                 },
-                ["Spor"] = new List<string>
+                ["Spor"] = new List<QuestionAnswer>
                 {
-                    "Dünya Kupası kaç yılda bir düzenlenir?",
-                    "Basketbolda kaç oyuncu sahada bulunur?",
-                    "Olimpiyat oyunlarının sembolü nedir?",
-                    "Fenerbahçe'nin kurulduğu yıl?",
-                    "Tenis kortunda kaç set oynanır?"
+                    new QuestionAnswer { Question = "Dünya Kupası kaç yılda bir düzenlenir?", Answer = "4" },
+                    new QuestionAnswer { Question = "Basketbolda kaç oyuncu sahada bulunur?", Answer = "10" },
+                    new QuestionAnswer { Question = "Olimpiyat oyunlarının sembolü nedir?", Answer = "Beş halka" },
+                    new QuestionAnswer { Question = "Fenerbahçe'nin kurulduğu yıl?", Answer = "1907" },
+                    new QuestionAnswer { Question = "Tenis kortunda kaç set oynanır?", Answer = "3 veya 5" }
                 },
-                ["Tarih"] = new List<string>
+                ["Tarih"] = new List<QuestionAnswer>
                 {
-                    "Osmanlı İmparatorluğu hangi yılda kuruldu?",
-                    "İstanbul'un fethi hangi yılda gerçekleşti?",
-                    "Atatürk hangi yılında doğdu?",
-                    "I. Dünya Savaşı hangi yıllar arasında yaşandı?",
-                    "Cumhuriyet hangi yılda ilan edildi?"
+                    new QuestionAnswer { Question = "Osmanlı İmparatorluğu hangi yılda kuruldu?", Answer = "1299" },
+                    new QuestionAnswer { Question = "İstanbul'un fethi hangi yılda gerçekleşti?", Answer = "1453" },
+                    new QuestionAnswer { Question = "Atatürk hangi yılında doğdu?", Answer = "1881" },
+                    new QuestionAnswer { Question = "I. Dünya Savaşı hangi yıllar arasında yaşandı?", Answer = "1914-1918" },
+                    new QuestionAnswer { Question = "Cumhuriyet hangi yılda ilan edildi?", Answer = "1923" }
                 },
-                ["Bilim"] = new List<string>
+                ["Bilim"] = new List<QuestionAnswer>
                 {
-                    "Suyun kimyasal formülü nedir?",
-                    "Güneş sistemindeki en büyük gezegen hangisidir?",
-                    "İnsan vücudundaki en büyük organ hangisidir?",
-                    "DNA'nın açılımı nedir?",
-                    "Periyodik tabloda kaç element vardır?"
+                    new QuestionAnswer { Question = "Suyun kimyasal formülü nedir?", Answer = "H2O" },
+                    new QuestionAnswer { Question = "Güneş sistemindeki en büyük gezegen hangisidir?", Answer = "Jüpiter" },
+                    new QuestionAnswer { Question = "İnsan vücudundaki en büyük organ hangisidir?", Answer = "Deri" },
+                    new QuestionAnswer { Question = "DNA'nın açılımı nedir?", Answer = "Deoksiribonükleik asit" },
+                    new QuestionAnswer { Question = "Periyodik tabloda kaç element vardır?", Answer = "118" }
                 },
-                ["Sanat"] = new List<string>
+                ["Sanat"] = new List<QuestionAnswer>
                 {
-                    "Van Gogh'un en ünlü tablosu hangisidir?",
-                    "Mozart hangi ülkede doğmuştur?",
-                    "Sistine Şapeli'nin tavanını kim boyamıştır?",
-                    "Hamlet'in yazarı kimdir?",
-                    "La Gioconda'nın diğer adı nedir?"
+                    new QuestionAnswer { Question = "Van Gogh'un en ünlü tablosu hangisidir?", Answer = "Yıldızlı Gece" },
+                    new QuestionAnswer { Question = "Mozart hangi ülkede doğmuştur?", Answer = "Avusturya" },
+                    new QuestionAnswer { Question = "Sistine Şapeli'nin tavanını kim boyamıştır?", Answer = "Michelangelo" },
+                    new QuestionAnswer { Question = "Hamlet'in yazarı kimdir?", Answer = "William Shakespeare" },
+                    new QuestionAnswer { Question = "La Gioconda'nın diğer adı nedir?", Answer = "Mona Lisa" }
                 },
-                ["Coğrafya"] = new List<string>
+                ["Coğrafya"] = new List<QuestionAnswer>
                 {
-                    "Dünyanın en yüksek dağı hangisidir?",
-                    "Amazon Nehri hangi kıtada bulunur?",
-                    "Türkiye'nin en büyük gölü hangisidir?",
-                    "Sahra Çölü hangi kıtada bulunur?",
-                    "Dünyanın en büyük kıtası hangisidir?"
+                    new QuestionAnswer { Question = "Dünyanın en yüksek dağı hangisidir?", Answer = "Everest" },
+                    new QuestionAnswer { Question = "Amazon Nehri hangi kıtada bulunur?", Answer = "Güney Amerika" },
+                    new QuestionAnswer { Question = "Türkiye'nin en büyük gölü hangisidir?", Answer = "Van Gölü" },
+                    new QuestionAnswer { Question = "Sahra Çölü hangi kıtada bulunur?", Answer = "Afrika" },
+                    new QuestionAnswer { Question = "Dünyanın en büyük kıtası hangisidir?", Answer = "Asya" }
                 },
-                ["Eğlence"] = new List<string>
+                ["Eğlence"] = new List<QuestionAnswer>
                 {
-                    "Mickey Mouse'u kim yaratmıştır?",
-                    "Star Wars serisinin ilk filmi hangi yılda çıkmıştır?",
-                    "Harry Potter serisinin yazarı kimdir?",
-                    "Superman'in gerçek adı nedir?",
-                    "Pikachu hangi oyun serisinden gelir?"
+                    new QuestionAnswer { Question = "Mickey Mouse'u kim yaratmıştır?", Answer = "Walt Disney" },
+                    new QuestionAnswer { Question = "Star Wars serisinin ilk filmi hangi yılda çıkmıştır?", Answer = "1977" },
+                    new QuestionAnswer { Question = "Harry Potter serisinin yazarı kimdir?", Answer = "J.K. Rowling" },
+                    new QuestionAnswer { Question = "Superman'in gerçek adı nedir?", Answer = "Clark Kent" },
+                    new QuestionAnswer { Question = "Pikachu hangi oyun serisinden gelir?", Answer = "Pokemon" }
                 },
-                ["Teknoloji"] = new List<string>
+                ["Teknoloji"] = new List<QuestionAnswer>
                 {
-                    "İlk iPhone hangi yılda çıkmıştır?",
-                    "Google'ın kurucuları kimlerdir?",
-                    "Windows işletim sistemini kim geliştirmiştir?",
-                    "İnternetin mucidi kimdir?",
-                    "Apple'ın kurucusu kimdir?"
+                    new QuestionAnswer { Question = "İlk iPhone hangi yılda çıkmıştır?", Answer = "2007" },
+                    new QuestionAnswer { Question = "Google'ın kurucuları kimlerdir?", Answer = "Larry Page ve Sergey Brin" },
+                    new QuestionAnswer { Question = "Windows işletim sistemini kim geliştirmiştir?", Answer = "Bill Gates" },
+                    new QuestionAnswer { Question = "İnternetin mucidi kimdir?", Answer = "Tim Berners-Lee" },
+                    new QuestionAnswer { Question = "Apple'ın kurucusu kimdir?", Answer = "Steve Jobs" }
                 }
             };
 
@@ -152,12 +128,10 @@ namespace YourTurn.Web.Services
                 return categoryQuestions[random.Next(categoryQuestions.Count)];
             }
 
-            return "Bu kategoride henüz soru bulunmamaktadır.";
+            return new QuestionAnswer { Question = "Bu kategoride henüz soru bulunmamaktadır.", Answer = "" };
         }
 
-        /// <summary>
-        /// Initializes a new game state for a lobby
-        /// </summary>
+        // Bir lobi için yeni bir oyun durumu başlatır
         public static GameState InitializeGameState(string category)
         {
             return new GameState
@@ -175,14 +149,12 @@ namespace YourTurn.Web.Services
             };
         }
 
-        /// <summary>
-        /// Initializes a new round while preserving scores
-        /// </summary>
+        // Skorları koruyarak yeni bir tur başlatır
         public static GameState InitializeNewRound(string category, int team1Score, int team2Score, string team1Volunteer, string team2Volunteer)
         {
-            // Randomly select which team starts
+            // Hangi takımın başlayacağını rastgele seç
             var random = new Random();
-            var team1Starts = random.Next(2) == 0; // 50% chance for each team
+            var team1Starts = random.Next(2) == 0; // Her takım için %50 şans
             
             return new GameState
             {
@@ -204,17 +176,13 @@ namespace YourTurn.Web.Services
             };
         }
 
-        /// <summary>
-        /// Checks if a team has reached the winning score
-        /// </summary>
+        // Bir takımın kazanma skoruna ulaşıp ulaşmadığını kontrol eder
         public static bool HasWinningTeam(int team1Score, int team2Score)
         {
             return team1Score >= WINNING_SCORE || team2Score >= WINNING_SCORE;
         }
 
-        /// <summary>
-        /// Gets the winning team name
-        /// </summary>
+        // Kazanan takımın adını alır
         public static string? GetWinningTeam(int team1Score, int team2Score)
         {
             if (team1Score >= WINNING_SCORE)
@@ -224,17 +192,13 @@ namespace YourTurn.Web.Services
             return null;
         }
 
-        /// <summary>
-        /// Generates a random player name if none is provided
-        /// </summary>
+        // Oyuncu adı sağlanmamışsa rastgele bir oyuncu adı oluşturur
         public static string GeneratePlayerName(string? playerName = null)
         {
             return playerName ?? "Oyuncu" + new Random().Next(1000, 9999);
         }
 
-        /// <summary>
-        /// Validates if a lobby can start a game
-        /// </summary>
+        // Bir lobinin oyuna başlayıp başlayamayacağını doğrular
         public static (bool canStart, string? errorMessage) ValidateGameStart(Lobby lobby)
         {
             if (string.IsNullOrEmpty(lobby.Category))

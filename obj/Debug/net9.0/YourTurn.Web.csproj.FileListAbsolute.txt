@@ -82,14 +82,6 @@ C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\ru\Microsoft.CodeAnalysis.Workspace
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\tr\Microsoft.CodeAnalysis.Workspaces.resources.dll
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.resources.dll
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.resources.dll
-C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Application.dll
-C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Domain.dll
-C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Infrastructure.dll
-C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Persistence.dll
-C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Application.pdb
-C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Domain.pdb
-C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Infrastructure.pdb
-C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Persistence.pdb
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.csproj.AssemblyReference.cache
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\rpswa.dswa.cache.json
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.GeneratedMSBuildEditorConfig.editorconfig

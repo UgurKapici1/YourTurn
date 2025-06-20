@@ -13,8 +13,7 @@
           "Microsoft.EntityFrameworkCore": "8.0.0",
           "Microsoft.EntityFrameworkCore.Design": "8.0.0",
           "Microsoft.EntityFrameworkCore.Tools": "8.0.0",
-          "Npgsql.EntityFrameworkCore.PostgreSQL": "8.0.0",
-          "YourTurn.Application": "1.0.0"
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "8.0.0"
         },
         "runtime": {
           "YourTurn.Web.dll": {}
@@ -696,47 +695,7 @@
           "System.Text.Encodings.Web": "8.0.0"
         }
       },
-      "System.Threading.Channels/8.0.0": {},
-      "YourTurn.Application/1.0.0": {
-        "dependencies": {
-          "YourTurn.Domain": "1.0.0",
-          "YourTurn.Infrastructure": "1.0.0"
-        },
-        "runtime": {
-          "YourTurn.Application.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
-          }
-        }
-      },
-      "YourTurn.Domain/1.0.0": {
-        "runtime": {
-          "YourTurn.Domain.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
-          }
-        }
-      },
-      "YourTurn.Infrastructure/1.0.0": {
-        "dependencies": {
-          "YourTurn.Domain": "1.0.0",
-          "YourTurn.Persistence": "1.0.0"
-        },
-        "runtime": {
-          "YourTurn.Infrastructure.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
-          }
-        }
-      },
-      "YourTurn.Persistence/1.0.0": {
-        "runtime": {
-          "YourTurn.Persistence.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
-          }
-        }
-      }
+      "System.Threading.Channels/8.0.0": {}
     }
   },
   "libraries": {
@@ -1241,26 +1200,6 @@
       "sha512": "sha512-CMaFr7v+57RW7uZfZkPExsPB6ljwzhjACWW1gfU35Y56rk72B/Wu+sTqxVmGSk4SFUlPc3cjeKND0zktziyjBA==",
       "path": "system.threading.channels/8.0.0",
       "hashPath": "system.threading.channels.8.0.0.nupkg.sha512"
-    },
-    "YourTurn.Application/1.0.0": {
-      "type": "project",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "YourTurn.Domain/1.0.0": {
-      "type": "project",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "YourTurn.Infrastructure/1.0.0": {
-      "type": "project",
-      "serviceable": false,
-      "sha512": ""
-    },
-    "YourTurn.Persistence/1.0.0": {
-      "type": "project",
-      "serviceable": false,
-      "sha512": ""
     }
   }
 }

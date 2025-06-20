@@ -148,8 +148,8 @@
                         <div class="position-absolute" style="left: 50%; top: 55px; transform: translateX(-50%); font-size: 10px; color: #666;">0</div>
                         
                         <!-- Sol ve sağ uç işaretleri -->
-                        <div class="position-absolute" style="left: 0; top: 55px; font-size: 10px; color: #666;">-100</div>
-                        <div class="position-absolute" style="right: 0; top: 55px; font-size: 10px; color: #666;">+100</div>
+                        <div class="position-absolute" style="left: 0; top: 55px; font-size: 10px; color: #666;"></div>
+                        <div class="position-absolute" style="right: 0; top: 55px; font-size: 10px; color: #666;"></div>
                         
                         <!-- Hareket eden nokta -->
                         <div id="movingPoint" class="position-absolute" style="top: 20px; transform: translateX(-50%); font-size: 25px; transition: left 0.1s ease;">
@@ -181,7 +181,19 @@
                     <h5>Soru</h5>
                 </div>
                 <div class="card-body text-center">
-                    <h4 class="text-primary">@(gameState?.CurrentQuestion ?? "Oyun henüz başlamadı")</h4>
+                    <h4 class="text-primary">@(gameState?.CurrentQuestion?.Question ?? "Oyun henüz başlamadı")</h4>
+                    @if (Model.RefereeName == currentPlayerName && gameState?.CurrentQuestion != null)
+                    {
+                        <div class="alert alert-info mt-3"><strong>Cevap:</strong> @gameState.CurrentQuestion.Answer</div>
+                        @if (gameState.CurrentTurn == gameState.ActivePlayer1 && !gameState.IsTeam1VolunteerAnswerValidated)
+                        {
+                            <button class="btn btn-success mt-2" onclick="validateVolunteerAnswer('Sol')">🔴 Sol Gönüllüyü Doğrula</button>
+                        }
+                        else if (gameState.CurrentTurn == gameState.ActivePlayer2 && !gameState.IsTeam2VolunteerAnswerValidated)
+                        {
+                            <button class="btn btn-primary mt-2" onclick="validateVolunteerAnswer('Sağ')">🔵 Sağ Gönüllüyü Doğrula</button>
+                        }
+                    }
                     
                     <div id="turnInfo">
                         @if (gameState?.IsGameActive == true)
@@ -470,7 +482,7 @@
                 if (isMyTurn) {
                     passTurnBtn.className = 'btn btn-success btn-lg';
                     passTurnBtn.disabled = false;
-                    passTurnBtn.innerHTML = '<i class="fas fa-arrow-right"></i> Sırayı Geç ve Süreyi Başlat!';
+                    passTurnBtn.innerHTML = '<i class="fas fa-arrow-right"></i> Cevapla';
                 } else {
                     passTurnBtn.className = 'btn btn-secondary btn-lg';
                     passTurnBtn.disabled = true;
@@ -548,18 +560,18 @@
                     // SignalR ile güncelleme gelecek, sayfa yenilenecek
                 } else {
                     console.error("Sıra geçirme hatası:", result.message);
-                    alert("Hata: " + result.message);
+                    
                     
                     // Butonu tekrar aktif et
                     btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-arrow-right"></i> Sırayı Geç ve Süreyi Başlat!';
+                    btn.innerHTML = '<i class="fas fa-arrow-right"></i> Cevapla';
                 }
             } catch (error) {
                 console.error("Fetch hatası:", error);
                 
                 // Butonu tekrar aktif et
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-arrow-right"></i> Sırayı Geç ve Süreyi Başlat!';
+                btn.innerHTML = '<i class="fas fa-arrow-right"></i> Cevapla';
             } finally {
                 spinner.classList.add('d-none');
             }
@@ -677,6 +689,21 @@
                     alert('Bir hata oluştu');
                 });
             }
+        }
+
+        function validateVolunteerAnswer(team) {
+            fetch('/Game/ValidateVolunteerAnswer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `code=@Model.LobbyCode&team=${team}`
+            })
+            .then(response => response.json())
+    
+            .catch(error => {
+                alert('Bir hata oluştu: ' + error);
+            });
         }
     </script>
 }

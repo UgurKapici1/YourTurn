@@ -6,18 +6,18 @@ using YourTurn.Web.Services;
 
 namespace YourTurn.Web.Controllers
 {
+    // Oyunla ilgili istekleri yönetir
     public class GameController : Controller
     {
         private readonly IHubContext<GameHub> _hubContext;
 
+        // Gerekli servisleri enjekte eder
         public GameController(IHubContext<GameHub> hubContext)
         {
             _hubContext = hubContext;
         }
 
-        /// <summary>
-        /// Displays the game page for a specific lobby
-        /// </summary>
+        // Belirtilen lobi kodu için oyun sayfasını görüntüler
         [HttpGet]
         public IActionResult Game(string code)
         {
@@ -37,9 +37,7 @@ namespace YourTurn.Web.Controllers
             return View(lobby);
         }
 
-        /// <summary>
-        /// Allows the current player to pass their turn to the next player
-        /// </summary>
+        // Mevcut oyuncunun sırasını bir sonraki oyuncuya geçirmesini sağlar
         [HttpPost]
         public async Task<IActionResult> PassTurn(string code)
         {
@@ -53,6 +51,17 @@ namespace YourTurn.Web.Controllers
                 
                 if (lobby.GameState.CurrentTurn != currentPlayerName)
                     return Json(new { success = false, message = "Sıra sizde değil" });
+
+                if (!string.IsNullOrEmpty(lobby.RefereeName))
+                {
+                    var isTeam1Volunteer = lobby.GameState.ActivePlayer1 == currentPlayerName;
+                    var isTeam2Volunteer = lobby.GameState.ActivePlayer2 == currentPlayerName;
+                    if ((isTeam1Volunteer && !lobby.GameState.IsTeam1VolunteerAnswerValidated) ||
+                        (isTeam2Volunteer && !lobby.GameState.IsTeam2VolunteerAnswerValidated))
+                    {
+                        return Json(new { success = false, message = "Hakem cevabını doğrulamadan turu bitiremezsin." });
+                    }
+                }
 
                 lobby.GameState.IsTimerRunning = false;
 
@@ -69,6 +78,8 @@ namespace YourTurn.Web.Controllers
                 lobby.GameState.LastAnswerTime = DateTime.Now;
                 lobby.GameState.LastTurnStartTime = DateTime.Now;
                 lobby.GameState.IsTimerRunning = true;
+                lobby.GameState.IsTeam1VolunteerAnswerValidated = false;
+                lobby.GameState.IsTeam2VolunteerAnswerValidated = false;
 
                 await _hubContext.Clients.Group(code).SendAsync("UpdateGame");
 
@@ -80,9 +91,7 @@ namespace YourTurn.Web.Controllers
             }
         }
 
-        /// <summary>
-        /// Allows a player to volunteer for their team
-        /// </summary>
+        // Bir oyuncunun takımı için gönüllü olmasını sağlar
         [HttpPost]
         public async Task<IActionResult> VolunteerForTeam(string code, string team)
         {
@@ -126,9 +135,7 @@ namespace YourTurn.Web.Controllers
             }
         }
 
-        /// <summary>
-        /// Returns the current game state including timer updates and win conditions
-        /// </summary>
+        // Zamanlayıcı güncellemeleri ve kazanma koşulları dahil olmak üzere mevcut oyun durumunu döndürür
         [HttpGet]
         public IActionResult GetGameState(string code)
         {
@@ -198,9 +205,7 @@ namespace YourTurn.Web.Controllers
             });
         }
 
-        /// <summary>
-        /// Starts a new round by resetting the game state and returning to lobby
-        /// </summary>
+        // Oyun durumunu sıfırlayarak ve lobiye dönerek yeni bir tur başlatır
         [HttpPost]
         public async Task<IActionResult> StartNewRound(string code)
         {
@@ -239,9 +244,7 @@ namespace YourTurn.Web.Controllers
             return RedirectToAction("Game", new { code });
         }
 
-        /// <summary>
-        /// Changes the category during a game break
-        /// </summary>
+        // Oyun kategorisini değiştirir
         [HttpPost]
         public async Task<IActionResult> ChangeCategory(string code, string category)
         {
@@ -270,9 +273,7 @@ namespace YourTurn.Web.Controllers
             return RedirectToAction("Game", new { code });
         }
 
-        /// <summary>
-        /// Allows the host to reset the game and return to lobby
-        /// </summary>
+        // Oyunu tamamen sıfırlar
         [HttpPost]
         public async Task<IActionResult> ResetGame(string code)
         {
@@ -303,9 +304,7 @@ namespace YourTurn.Web.Controllers
             }
         }
 
-        /// <summary>
-        /// Starts a new round with the same or new category
-        /// </summary>
+        // Aynı veya yeni kategoriyle yeni bir tur başlatır
         [HttpPost]
         public async Task<IActionResult> StartNewRoundWithSameOrNewCategory(string code, string category)
         {
@@ -348,6 +347,83 @@ namespace YourTurn.Web.Controllers
             await _hubContext.Clients.Group(code).SendAsync("UpdateGame");
             
             return RedirectToAction("Game", new { code });
+        }
+
+        // Zamanlayıcıyı durdurur veya başlatır
+        [HttpPost]
+        public async Task<IActionResult> ToggleTimer(string code)
+        {
+            var lobby = GameService.FindLobby(code);
+            if (lobby == null || lobby.GameState == null)
+                return Json(new { success = false, message = "Lobby veya oyun durumu bulunamadı" });
+
+            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
+            if (lobby.RefereeName != currentPlayerName)
+                return Json(new { success = false, message = "Sadece hakem süreyi yönetebilir." });
+
+            lobby.GameState.IsTimerRunning = !lobby.GameState.IsTimerRunning;
+            if (lobby.GameState.IsTimerRunning)
+            {
+                lobby.GameState.LastTurnStartTime = DateTime.Now;
+            }
+            await _hubContext.Clients.Group(code).SendAsync("UpdateGame");
+            return Json(new { success = true, isTimerRunning = lobby.GameState.IsTimerRunning });
+        }
+
+        // Hakemin sırayı geçmesini sağlar
+        [HttpPost]
+        public async Task<IActionResult> PassTurnByReferee(string code)
+        {
+            var lobby = GameService.FindLobby(code);
+            if (lobby == null || lobby.GameState == null)
+                return Json(new { success = false, message = "Lobby veya oyun durumu bulunamadı" });
+
+            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
+            if (lobby.RefereeName != currentPlayerName)
+                return Json(new { success = false, message = "Sadece hakem sırayı geçirebilir." });
+
+            // Sırayı değiştir
+            if (lobby.GameState.CurrentTurn == lobby.GameState.ActivePlayer1)
+            {
+                lobby.GameState.CurrentTurn = lobby.GameState.ActivePlayer2;
+            }
+            else
+            {
+                lobby.GameState.CurrentTurn = lobby.GameState.ActivePlayer1;
+            }
+            // Yeni soru getir
+            lobby.GameState.CurrentQuestion = GameService.GetRandomQuestion(lobby.Category);
+            lobby.GameState.LastAnswerTime = DateTime.Now;
+            lobby.GameState.LastTurnStartTime = DateTime.Now;
+            // Süreyi durdur
+            lobby.GameState.IsTimerRunning = false;
+            // Gönüllü cevap doğrulama flag'lerini sıfırla
+            lobby.GameState.IsTeam1VolunteerAnswerValidated = false;
+            lobby.GameState.IsTeam2VolunteerAnswerValidated = false;
+
+            await _hubContext.Clients.Group(code).SendAsync("UpdateGame");
+            return Json(new { success = true });
+        }
+
+        // Gönüllünün cevabını doğrular
+        [HttpPost]
+        public async Task<IActionResult> ValidateVolunteerAnswer(string code, string team)
+        {
+            var lobby = GameService.FindLobby(code);
+            if (lobby == null || lobby.GameState == null)
+                return Json(new { success = false, message = "Lobby veya oyun durumu bulunamadı" });
+
+            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
+            if (lobby.RefereeName != currentPlayerName)
+                return Json(new { success = false, message = "Sadece hakem doğrulama yapabilir." });
+
+            if (team == "Sol")
+                lobby.GameState.IsTeam1VolunteerAnswerValidated = true;
+            else if (team == "Sağ")
+                lobby.GameState.IsTeam2VolunteerAnswerValidated = true;
+
+            await _hubContext.Clients.Group(code).SendAsync("UpdateGame");
+            return Json(new { success = true });
         }
     }
 }

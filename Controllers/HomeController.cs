@@ -4,35 +4,31 @@ using YourTurn.Web.Models;
 
 namespace YourTurn.Web.Controllers;
 
+// Ana sayfa ve diğer temel sayfalarla ilgili istekleri yönetir
 public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
 
+    // Gerekli servisleri enjekte eder
     public HomeController(ILogger<HomeController> logger)
     {
         _logger = logger;
     }
 
-    /// <summary>
-    /// Displays the home page
-    /// </summary>
+    // Ana sayfayı görüntüler
     public IActionResult Index()
     {
         return View();
     }
 
-    /// <summary>
-    /// Displays the join lobby page
-    /// </summary>
+    // Lobiye katılma sayfasını görüntüler
     [HttpGet]
     public IActionResult JoinLobby()
     {
         return View();
     }
 
-    /// <summary>
-    /// Handles player name submission and redirects to join lobby
-    /// </summary>
+    // Oyuncu adını alır ve lobiye katılma sayfasına yönlendirir
     [HttpPost]
     public IActionResult Start(string playerName)
     {
@@ -40,17 +36,13 @@ public class HomeController : Controller
         return RedirectToAction("JoinLobby");
     }
 
-    /// <summary>
-    /// Displays the privacy page
-    /// </summary>
+    // Gizlilik sayfasını görüntüler
     public IActionResult Privacy()
     {
         return View();
     }
 
-    /// <summary>
-    /// Displays error information
-    /// </summary>
+    // Hata bilgilerini görüntüler
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {

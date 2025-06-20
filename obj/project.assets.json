@@ -1395,54 +1395,6 @@
         "build": {
           "buildTransitive/net6.0/_._": {}
         }
-      },
-      "YourTurn.Application/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v9.0",
-        "dependencies": {
-          "YourTurn.Domain": "1.0.0",
-          "YourTurn.Infrastructure": "1.0.0"
-        },
-        "compile": {
-          "bin/placeholder/YourTurn.Application.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/YourTurn.Application.dll": {}
-        }
-      },
-      "YourTurn.Domain/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v9.0",
-        "compile": {
-          "bin/placeholder/YourTurn.Domain.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/YourTurn.Domain.dll": {}
-        }
-      },
-      "YourTurn.Infrastructure/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v9.0",
-        "dependencies": {
-          "YourTurn.Domain": "1.0.0",
-          "YourTurn.Persistence": "1.0.0"
-        },
-        "compile": {
-          "bin/placeholder/YourTurn.Infrastructure.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/YourTurn.Infrastructure.dll": {}
-        }
-      },
-      "YourTurn.Persistence/1.0.0": {
-        "type": "project",
-        "framework": ".NETCoreApp,Version=v9.0",
-        "compile": {
-          "bin/placeholder/YourTurn.Persistence.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/YourTurn.Persistence.dll": {}
-        }
       }
     }
   },
@@ -3401,26 +3353,6 @@
         "system.threading.channels.nuspec",
         "useSharedDesignerContext.txt"
       ]
-    },
-    "YourTurn.Application/1.0.0": {
-      "type": "project",
-      "path": "../YourTurn.Application/YourTurn.Application.csproj",
-      "msbuildProject": "../YourTurn.Application/YourTurn.Application.csproj"
-    },
-    "YourTurn.Domain/1.0.0": {
-      "type": "project",
-      "path": "../YourTurn.Domain/YourTurn.Domain.csproj",
-      "msbuildProject": "../YourTurn.Domain/YourTurn.Domain.csproj"
-    },
-    "YourTurn.Infrastructure/1.0.0": {
-      "type": "project",
-      "path": "../YourTurn.Infrastructure/YourTurn.Infrastructure.csproj",
-      "msbuildProject": "../YourTurn.Infrastructure/YourTurn.Infrastructure.csproj"
-    },
-    "YourTurn.Persistence/1.0.0": {
-      "type": "project",
-      "path": "../YourTurn.Persistence/YourTurn.Persistence.csproj",
-      "msbuildProject": "../YourTurn.Persistence/YourTurn.Persistence.csproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -3430,8 +3362,7 @@
       "Microsoft.EntityFrameworkCore >= 8.0.0",
       "Microsoft.EntityFrameworkCore.Design >= 8.0.0",
       "Microsoft.EntityFrameworkCore.Tools >= 8.0.0",
-      "Npgsql.EntityFrameworkCore.PostgreSQL >= 8.0.0",
-      "YourTurn.Application >= 1.0.0"
+      "Npgsql.EntityFrameworkCore.PostgreSQL >= 8.0.0"
     ]
   },
   "packageFolders": {
@@ -3440,11 +3371,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "c:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj",
+      "projectUniqueName": "C:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj",
       "projectName": "YourTurn.Web",
-      "projectPath": "c:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj",
+      "projectPath": "C:\\Users\\pazar\\YourTurn.Web\\YourTurn.Web.csproj",
       "packagesPath": "C:\\Users\\pazar\\.nuget\\packages\\",
-      "outputPath": "c:\\Users\\pazar\\YourTurn.Web\\obj\\",
+      "outputPath": "C:\\Users\\pazar\\YourTurn.Web\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\pazar\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -3458,11 +3389,7 @@
       "frameworks": {
         "net9.0": {
           "targetAlias": "net9.0",
-          "projectReferences": {
-            "c:\\Users\\pazar\\YourTurn.Application\\YourTurn.Application.csproj": {
-              "projectPath": "c:\\Users\\pazar\\YourTurn.Application\\YourTurn.Application.csproj"
-            }
-          }
+          "projectReferences": {}
         }
       },
       "warningProperties": {

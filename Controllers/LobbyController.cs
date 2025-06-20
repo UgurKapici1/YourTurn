@@ -7,18 +7,18 @@ using YourTurn.Web.Stores;
 
 namespace YourTurn.Web.Controllers
 {
+    // Lobi ile ilgili istekleri yönetir
     public class LobbyController : Controller
     {
         private readonly IHubContext<LobbyHub> _hubContext;
 
+        // Gerekli servisleri enjekte eder
         public LobbyController(IHubContext<LobbyHub> hubContext)
         {
             _hubContext = hubContext;
         }
 
-        /// <summary>
-        /// Creates a new lobby with the current player as host and automatically starts peer hosting
-        /// </summary>
+        // Mevcut oyuncuyla yeni bir lobi oluşturur ve ana bilgisayar olarak ayarlar
         [HttpPost]
         public async Task<IActionResult> Create()
         {
@@ -47,9 +47,7 @@ namespace YourTurn.Web.Controllers
             return RedirectToAction("LobbyRoom", new { code = newLobby.LobbyCode });
         }
 
-        /// <summary>
-        /// Allows a player to join an existing lobby
-        /// </summary>
+        // Bir oyuncunun mevcut bir lobiye katılmasına izin verir
         [HttpPost]
         public async Task<IActionResult> JoinAsync(string lobbyCode)
         {
@@ -72,9 +70,7 @@ namespace YourTurn.Web.Controllers
             return RedirectToAction("LobbyRoom", new { code = lobby.LobbyCode });
         }
 
-        /// <summary>
-        /// Displays the lobby room for a specific lobby
-        /// </summary>
+        // Belirli bir lobi için lobi odasını görüntüler
         [HttpGet]
         public IActionResult LobbyRoom(string code)
         {
@@ -92,9 +88,7 @@ namespace YourTurn.Web.Controllers
             return View(lobby);
         }
 
-        /// <summary>
-        /// Gets peer host information for a lobby
-        /// </summary>
+        // Bir lobi için eş ana bilgisayar bilgilerini alır
         [HttpGet]
         public IActionResult GetPeerHostInfo(string code)
         {
@@ -113,9 +107,7 @@ namespace YourTurn.Web.Controllers
             });
         }
 
-        /// <summary>
-        /// Allows the host to choose a category for the game
-        /// </summary>
+        // Ana bilgisayarın oyun için bir kategori seçmesine izin verir
         [HttpPost]
         public async Task<IActionResult> ChooseCategory(string code, string category)
         {
@@ -135,9 +127,7 @@ namespace YourTurn.Web.Controllers
             return RedirectToAction("LobbyRoom", new { code });
         }
 
-        /// <summary>
-        /// Allows a player to choose or change their team
-        /// </summary>
+        // Bir oyuncunun takımını seçmesine veya değiştirmesine izin verir
         [HttpPost]
         public async Task<IActionResult> ChooseTeam(string code, string playerName, string team)
         {
@@ -169,9 +159,7 @@ namespace YourTurn.Web.Controllers
             return RedirectToAction("LobbyRoom", new { code });
         }
 
-        /// <summary>
-        /// Allows a player to leave their current team
-        /// </summary>
+        // Bir oyuncunun mevcut takımından ayrılmasına izin verir
         [HttpPost]
         public async Task<IActionResult> LeaveTeam(string code, string playerName)
         {
@@ -189,9 +177,7 @@ namespace YourTurn.Web.Controllers
             return RedirectToAction("LobbyRoom", new { code });
         }
 
-        /// <summary>
-        /// Allows a player to leave the lobby
-        /// </summary>
+        // Bir oyuncunun lobiden ayrılmasına izin verir
         [HttpPost]
         public async Task<IActionResult> Leave(string code)
         {
@@ -237,9 +223,7 @@ namespace YourTurn.Web.Controllers
             return RedirectToAction("Index", "Home");
         }
 
-        /// <summary>
-        /// Starts the game if all conditions are met
-        /// </summary>
+        // Tüm koşullar karşılanırsa oyunu başlatır
         [HttpPost]
         public async Task<IActionResult> StartGame(string code)
         {
@@ -272,9 +256,7 @@ namespace YourTurn.Web.Controllers
             return RedirectToAction("Game", "Game", new { code });
         }
 
-        /// <summary>
-        /// Allows a player to volunteer for their team
-        /// </summary>
+        // Bir oyuncunun takımı için gönüllü olmasına izin verir
         [HttpPost]
         public async Task<IActionResult> VolunteerForTeam([FromBody] VolunteerRequest request)
         {
@@ -317,9 +299,7 @@ namespace YourTurn.Web.Controllers
             }
         }
 
-        /// <summary>
-        /// Allows a player to withdraw their volunteer status
-        /// </summary>
+        // Gönüllünün geri çekilmesine izin verir
         [HttpPost]
         public async Task<IActionResult> WithdrawVolunteer([FromBody] VolunteerRequest request)
         {
@@ -357,9 +337,7 @@ namespace YourTurn.Web.Controllers
             }
         }
 
-        /// <summary>
-        /// Randomly assigns players to teams
-        /// </summary>
+        // Takımları rastgele dağıtır
         [HttpPost]
         public async Task<IActionResult> RandomizeTeams(string code)
         {
@@ -398,9 +376,7 @@ namespace YourTurn.Web.Controllers
             return RedirectToAction("LobbyRoom", new { code });
         }
 
-        /// <summary>
-        /// Resets all team assignments
-        /// </summary>
+        // Takımları sıfırlar
         [HttpPost]
         public async Task<IActionResult> ResetTeams(string code)
         {
@@ -427,6 +403,63 @@ namespace YourTurn.Web.Controllers
             return RedirectToAction("LobbyRoom", new { code });
         }
 
+        // Oyuncunun hakem olmasını sağlar
+        [HttpPost]
+        public async Task<IActionResult> BecomeReferee(string code)
+        {
+            var lobby = GameService.FindLobby(code);
+            if (lobby == null || lobby.IsGameStarted)
+                return Forbid();
+
+            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
+            // Gönüllüyse gönüllülükten çıkar
+            if (lobby.GameState != null)
+            {
+                if (lobby.GameState.Team1Volunteer == currentPlayerName)
+                    lobby.GameState.Team1Volunteer = null;
+                if (lobby.GameState.Team2Volunteer == currentPlayerName)
+                    lobby.GameState.Team2Volunteer = null;
+            }
+            if (string.IsNullOrEmpty(lobby.RefereeName))
+            {
+                lobby.RefereeName = currentPlayerName;
+                await _hubContext.Clients.Group(code).SendAsync("UpdateLobby");
+                TempData["Success"] = "Artık hakemsiniz!";
+            }
+            else if (lobby.RefereeName == currentPlayerName)
+            {
+                TempData["Error"] = "Zaten hakemsiniz.";
+            }
+            else
+            {
+                TempData["Error"] = "Bu lobide zaten bir hakem var.";
+            }
+            return RedirectToAction("LobbyRoom", new { code });
+        }
+
+        // Hakemin görevini bırakmasını sağlar
+        [HttpPost]
+        public async Task<IActionResult> LeaveReferee(string code)
+        {
+            var lobby = GameService.FindLobby(code);
+            if (lobby == null || lobby.IsGameStarted)
+                return Forbid();
+
+            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
+            if (lobby.RefereeName == currentPlayerName)
+            {
+                lobby.RefereeName = null;
+                await _hubContext.Clients.Group(code).SendAsync("UpdateLobby");
+                TempData["Success"] = "Hakemlikten ayrıldınız.";
+            }
+            else
+            {
+                TempData["Error"] = "Hakem değilsiniz.";
+            }
+            return RedirectToAction("LobbyRoom", new { code });
+        }
+
+        // Gönüllü isteği için model
         public class VolunteerRequest
         {
             public string code { get; set; }

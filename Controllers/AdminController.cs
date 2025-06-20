@@ -10,18 +10,20 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace YourTurn.Web.Controllers
 {
+    // Yönetici paneli ile ilgili tüm istekleri yönetir
     public class AdminController : Controller
     {
         private readonly YourTurnDbContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
+        // Gerekli servisleri enjekte eder
         public AdminController(YourTurnDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
         }
 
-        // GET: Admin (Default route for /admin)
+        // GET: /admin için varsayılan rota
         [Route("admin")]
         public IActionResult Index()
         {
@@ -32,7 +34,7 @@ namespace YourTurn.Web.Controllers
             return RedirectToAction("Login");
         }
 
-        // GET: Admin/Login
+        // GET: Yönetici giriş sayfasını görüntüler
         [Route("admin/login")]
         public IActionResult Login()
         {
@@ -43,7 +45,7 @@ namespace YourTurn.Web.Controllers
             return View();
         }
 
-        // POST: Admin/Login
+        // POST: Yönetici giriş işlemini gerçekleştirir
         [HttpPost]
         [Route("admin/login")]
         public async Task<IActionResult> Login(string username, string password)
@@ -85,7 +87,7 @@ namespace YourTurn.Web.Controllers
             return View();
         }
 
-        // GET: Admin/Logout
+        // GET: Yönetici çıkış işlemini gerçekleştirir
         [Route("admin/logout")]
         public async Task<IActionResult> Logout()
         {
@@ -99,7 +101,7 @@ namespace YourTurn.Web.Controllers
             return RedirectToAction("Login");
         }
 
-        // GET: Admin/Dashboard
+        // GET: Yönetici kontrol panelini görüntüler
         [Route("admin/dashboard")]
         public async Task<IActionResult> Dashboard()
         {
@@ -130,7 +132,7 @@ namespace YourTurn.Web.Controllers
             return View(dashboardData);
         }
 
-        // GET: Admin/DashboardData (JSON endpoint for real-time updates)
+        // GET: Kontrol paneli için anlık verileri JSON formatında sağlar
         [Route("admin/dashboard-data")]
         public IActionResult DashboardData()
         {
@@ -162,7 +164,7 @@ namespace YourTurn.Web.Controllers
             return Json(dashboardData);
         }
 
-        // GET: Admin/ChangePassword
+        // GET: Şifre değiştirme sayfasını görüntüler
         [Route("admin/change-password")]
         public IActionResult ChangePassword()
         {
@@ -173,7 +175,7 @@ namespace YourTurn.Web.Controllers
             return View();
         }
 
-        // POST: Admin/ChangePassword
+        // POST: Yönetici şifresini değiştirir
         [HttpPost]
         [Route("admin/change-password")]
         public async Task<IActionResult> ChangePassword(string currentPassword, string newPassword, string confirmPassword)
@@ -220,7 +222,7 @@ namespace YourTurn.Web.Controllers
             return RedirectToAction("Dashboard");
         }
 
-        // GET: Admin/ChangeUsername
+        // GET: Kullanıcı adı değiştirme sayfasını görüntüler
         [Route("admin/change-username")]
         public IActionResult ChangeUsername()
         {
@@ -231,7 +233,7 @@ namespace YourTurn.Web.Controllers
             return View();
         }
 
-        // POST: Admin/ChangeUsername
+        // POST: Yönetici kullanıcı adını değiştirir
         [HttpPost]
         [Route("admin/change-username")]
         public async Task<IActionResult> ChangeUsername(string currentPassword, string newUsername)
@@ -283,7 +285,7 @@ namespace YourTurn.Web.Controllers
             return RedirectToAction("Login");
         }
 
-        // GET: Admin/Players
+        // GET: Oyuncu listesini görüntüler
         [Route("admin/players")]
         public async Task<IActionResult> Players()
         {
@@ -307,7 +309,7 @@ namespace YourTurn.Web.Controllers
             return View(viewModel);
         }
 
-        // GET: Admin/Lobbies
+        // GET: Lobi listesini görüntüler
         [Route("admin/lobbies")]
         public async Task<IActionResult> Lobbies()
         {
@@ -331,7 +333,7 @@ namespace YourTurn.Web.Controllers
             return View(viewModel);
         }
 
-        // GET: Admin/Settings
+        // GET: Yönetici ayarlarını görüntüler
         [Route("admin/settings")]
         public async Task<IActionResult> Settings()
         {
@@ -348,7 +350,7 @@ namespace YourTurn.Web.Controllers
             return View(settings);
         }
 
-        // POST: Admin/UpdateSetting
+        // POST: Bir yönetici ayarını günceller
         [HttpPost]
         [Route("admin/update-setting")]
         public async Task<IActionResult> UpdateSetting(int id, string value)
@@ -374,7 +376,7 @@ namespace YourTurn.Web.Controllers
             return RedirectToAction("Settings");
         }
 
-        // GET: Admin/Logs
+        // GET: Yönetici eylem günlüklerini görüntüler
         [Route("admin/logs")]
         public async Task<IActionResult> Logs(int page = 1, int pageSize = 50)
         {
@@ -405,6 +407,7 @@ namespace YourTurn.Web.Controllers
             return View(viewModel);
         }
 
+        // Yönetici eylemlerini veritabanına kaydeder
         private async Task LogAdminAction(int adminId, string action, string details = null)
         {
             var log = new AdminLog
@@ -422,7 +425,7 @@ namespace YourTurn.Web.Controllers
         }
     }
 
-    // View Models
+    // Yönetici kontrol paneli için view model
     public class AdminDashboardViewModel
     {
         public int TotalPlayers { get; set; }
@@ -434,18 +437,21 @@ namespace YourTurn.Web.Controllers
         public List<string> CurrentActivePlayers { get; set; } = new List<string>();
     }
 
+    // Oyuncular sayfası için view model
     public class AdminPlayersViewModel
     {
         public List<string> ActivePlayers { get; set; } = new List<string>();
         public List<PlayerStat> DatabasePlayers { get; set; } = new List<PlayerStat>();
     }
 
+    // Lobiler sayfası için view model
     public class AdminLobbiesViewModel
     {
         public List<Lobby> ActiveLobbies { get; set; } = new List<Lobby>();
         public List<LobbyHistory> DatabaseLobbies { get; set; } = new List<LobbyHistory>();
     }
 
+    // Günlükler sayfası için view model
     public class AdminLogsViewModel
     {
         public List<AdminLog> Logs { get; set; } = new List<AdminLog>();

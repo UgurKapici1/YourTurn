@@ -29,9 +29,6 @@
         <!-- Takım Seçmeyen Oyuncular Card -->
         <div class="col-md-4 d-flex justify-content-end">
             <div class="card w-100 border-secondary">
-                <div class="card-header bg-secondary text-white text-center">
-                    <h5 class="mb-0">⚪ Takım Seçmeyen Oyuncular</h5>
-                </div>
                 <div class="card-body p-2">
                     @if (Model.Players.Any(p => string.IsNullOrEmpty(p.Team)))
                     {
@@ -44,13 +41,17 @@
                                     {
                                         <span class="badge bg-success">Sen</span>
                                     }
+                                    @if (Model.RefereeName == player.Name)
+                                    {
+                                        <span class="badge bg-info"><i class="fas fa-gavel"></i> Hakem</span>
+                                    }
                                 </li>
                             }
                         </ul>
                     }
                     else
                     {
-                        <div class="text-center text-muted py-3">Tüm oyuncular bir takıma katıldı.</div>
+                        <div class="text-center text-muted py-3">Seyirci Yok</div>
                     }
                 </div>
             </div>
@@ -58,9 +59,6 @@
         <!-- Oyun Yönetimi & Kategori Card -->
         <div class="col-md-5 d-flex justify-content-start">
             <div class="card mb-4" style="max-width: 600px; width:100%">
-                <div class="card-header d-flex align-items-center justify-content-between">
-                    <span><i class="fas fa-crown"></i> Oyun Kategorisi & <i class="fas fa-users"></i> Takım Yönetimi</span>
-                </div>
                 <div class="card-body">
                     <!-- Kategori Seçimi (küçültülmüş ve yatay) -->
                     <div class="row align-items-center mb-2">
@@ -151,6 +149,41 @@ else
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
+<!-- Hakem seçimi ve rozet -->
+@if (string.IsNullOrEmpty(Model.RefereeName))
+{
+    <div class="text-center mb-3">
+        <form method="post" action="/Lobby/BecomeReferee">
+            <input type="hidden" name="code" value="@Model.LobbyCode" />
+            <button type="submit" class="btn btn-outline-info">
+                <i class="fas fa-gavel"></i> Hakem olmak istiyorum
+            </button>
+        </form>
+    </div>
+}
+else if (Model.RefereeName == currentPlayerName)
+{
+    <div class="text-center mb-3">
+        <form method="post" action="/Lobby/LeaveReferee">
+            <input type="hidden" name="code" value="@Model.LobbyCode" />
+            <button type="submit" class="btn btn-outline-danger">
+                <i class="fas fa-times"></i> Hakemlikten Ayrıl
+            </button>
+        </form>
+    </div>
+}
+
+<!-- Takım kartlarının üstünde hakem kutusu -->
+@if (!string.IsNullOrEmpty(Model.RefereeName))
+{
+    <div class="row mb-2">
+        <div class="col-12 d-flex justify-content-center">
+            <div class="bg-info text-white rounded px-3 py-1 shadow-sm" style="display:inline-block; font-size:1rem;">
+                <i class="fas fa-gavel"></i> Hakem: <strong>@Model.RefereeName</strong>
+            </div>
+        </div>
+    </div>
+}
 
 <div class="row mt-4">
     <!-- Kırmızı Takım (Sol) -->
@@ -191,6 +224,10 @@ else
                             @if (Model.GameState?.Team1Volunteer == player.Name)
                             {
                                 <span class="badge bg-danger">Gönüllü</span>
+                            }
+                            @if (Model.RefereeName == player.Name)
+                            {
+                                <span class="badge bg-info"><i class="fas fa-gavel"></i> Hakem</span>
                             }
                         </li>
                     }
@@ -259,6 +296,10 @@ else
                             @if (Model.GameState?.Team2Volunteer == player.Name)
                             {
                                 <span class="badge bg-primary">Gönüllü</span>
+                            }
+                            @if (Model.RefereeName == player.Name)
+                            {
+                                <span class="badge bg-info"><i class="fas fa-gavel"></i> Hakem</span>
                             }
                         </li>
                     }
@@ -350,6 +391,8 @@ else
         }
     </div>
 }
+
+
 
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>

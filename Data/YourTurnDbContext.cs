@@ -3,26 +3,29 @@ using YourTurn.Web.Models;
 
 namespace YourTurn.Web.Data
 {
+    // Veritabanı bağlantısını ve tablo eşlemelerini yöneten ana sınıf
     public class YourTurnDbContext : DbContext
     {
+        // Kurucu metot, veritabanı seçeneklerini alır
         public YourTurnDbContext(DbContextOptions<YourTurnDbContext> options) : base(options)
         {
         }
 
-        // Admin related DbSets
+        // Yönetici ile ilgili veritabanı tabloları
         public DbSet<Admin> Admins { get; set; }
         public DbSet<AdminLog> AdminLogs { get; set; }
         public DbSet<AdminSetting> AdminSettings { get; set; }
 
-        // Game related DbSets
+        // Oyun ile ilgili veritabanı tabloları
         public DbSet<PlayerStat> PlayerStats { get; set; }
         public DbSet<LobbyHistory> LobbyHistories { get; set; }
 
+        // Model oluşturulurken veritabanı şemasını yapılandırır
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // Admin entity configuration
+            // Admin entity'si için yapılandırma
             modelBuilder.Entity<Admin>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -32,11 +35,11 @@ namespace YourTurn.Web.Data
                 entity.Property(e => e.Role).HasMaxLength(20).HasDefaultValue("Admin");
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
                 
-                // Unique constraint on username
+                // Kullanıcı adının benzersiz olmasını sağlar
                 entity.HasIndex(e => e.Username).IsUnique();
             });
 
-            // AdminLog entity configuration
+            // AdminLog entity'si için yapılandırma
             modelBuilder.Entity<AdminLog>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -45,14 +48,14 @@ namespace YourTurn.Web.Data
                 entity.Property(e => e.UserAgent).HasMaxLength(500);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
                 
-                // Foreign key relationship
+                // Yabancı anahtar ilişkisi
                 entity.HasOne(e => e.Admin)
                     .WithMany(e => e.AdminLogs)
                     .HasForeignKey(e => e.AdminId)
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // AdminSetting entity configuration
+            // AdminSetting entity'si için yapılandırma
             modelBuilder.Entity<AdminSetting>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -60,28 +63,28 @@ namespace YourTurn.Web.Data
                 entity.Property(e => e.Description).HasMaxLength(200);
                 entity.Property(e => e.UpdatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
                 
-                // Unique constraint on setting key
+                // Ayar anahtarının benzersiz olmasını sağlar
                 entity.HasIndex(e => e.SettingKey).IsUnique();
                 
-                // Foreign key relationship
+                // Yabancı anahtar ilişkisi
                 entity.HasOne(e => e.UpdatedByAdmin)
                     .WithMany(e => e.AdminSettings)
                     .HasForeignKey(e => e.UpdatedBy)
                     .OnDelete(DeleteBehavior.SetNull);
             });
 
-            // PlayerStat entity configuration
+            // PlayerStat entity'si için yapılandırma
             modelBuilder.Entity<PlayerStat>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.PlayerName).IsRequired().HasMaxLength(100);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
                 
-                // Unique constraint on player name
+                // Oyuncu adının benzersiz olmasını sağlar
                 entity.HasIndex(e => e.PlayerName).IsUnique();
             });
 
-            // LobbyHistory entity configuration
+            // LobbyHistory entity'si için yapılandırma
             modelBuilder.Entity<LobbyHistory>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -93,19 +96,19 @@ namespace YourTurn.Web.Data
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
             });
 
-            // Seed data for default admin
+            // Varsayılan yönetici için başlangıç verisi
             modelBuilder.Entity<Admin>().HasData(new Admin
             {
                 Id = 1,
                 Username = "admin",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"), // Default password
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin123"), // Varsayılan şifre
                 Email = "admin@yourturn.com",
                 Role = "SuperAdmin",
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
             });
 
-            // Seed data for default settings
+            // Varsayılan ayarlar için başlangıç verileri
             modelBuilder.Entity<AdminSetting>().HasData(
                 new AdminSetting
                 {
