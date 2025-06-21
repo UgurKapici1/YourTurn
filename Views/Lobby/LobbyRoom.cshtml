@@ -1,11 +1,11 @@
-@model YourTurn.Web.Models.Lobby
+@model YourTurn.Web.Controllers.LobbyController.LobbyRoomViewModel
 
 @{
     var currentPlayerName = ViewBag.CurrentPlayerName?.ToString();
-    var currentPlayer = Model.Players.FirstOrDefault(p => p.Name == currentPlayerName);
+    var currentPlayer = Model.Lobby.Players.FirstOrDefault(p => p.Name == currentPlayerName);
     var currentPlayerTeam = currentPlayer?.Team ?? "";
-    var isHost = Model.HostPlayerName == ViewBag.CurrentPlayerName?.ToString();
-    var gameState = Model.GameState ?? new GameState { IsWaitingForVolunteers = true };
+    var isHost = Model.Lobby.HostPlayerName == ViewBag.CurrentPlayerName?.ToString();
+    var gameState = Model.Lobby.GameState ?? new GameState { IsWaitingForVolunteers = true };
     var team1Volunteer = gameState.Team1Volunteer;
     var team2Volunteer = gameState.Team2Volunteer;
 }
@@ -13,33 +13,33 @@
 @Html.AntiForgeryToken()
 
 <div id="lobby-data" 
-    data-lobby-code="@Model.LobbyCode" 
+    data-lobby-code="@Model.Lobby.LobbyCode" 
     data-current-player-name="@currentPlayerName"
-    data-host-player-name="@Model.HostPlayerName">
+    data-host-player-name="@Model.Lobby.HostPlayerName">
 </div>
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <form method="post" action="/Lobby/Leave" class="d-inline">
-        <input type="hidden" name="code" value="@Model.LobbyCode" />
+        <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
         <button type="submit" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left"></i> Lobiden Ayrıl
         </button>
     </form>
-    <h2 class="text-center mb-0">Lobi Kodu: <span id="lobbyCode" class="text-warning" style="cursor: pointer; user-select: all;" onclick="copyLobbyCode()" title="Kopyalamak için tıklayın">@Model.LobbyCode</span></h2>
+    <h2 class="text-center mb-0">Lobi Kodu: <span id="lobbyCode" class="text-warning" style="cursor: pointer; user-select: all;" onclick="copyLobbyCode()" title="Kopyalamak için tıklayın">@Model.Lobby.LobbyCode</span></h2>
     <div style="width: 140px;"></div> <!-- Spacing için boş div -->
 </div>
 
-@if (isHost && !Model.IsGameStarted)
+@if (isHost && !Model.Lobby.IsGameStarted)
 {
     <div class="row mb-4 justify-content-center">
         <!-- Takım Seçmeyen Oyuncular Card -->
         <div class="col-md-4 d-flex justify-content-end">
             <div class="card w-100 border-secondary">
                 <div class="card-body p-2">
-                    @if (Model.Players.Any(p => string.IsNullOrEmpty(p.Team)))
+                    @if (Model.Lobby.Players.Any(p => string.IsNullOrEmpty(p.Team)))
                     {
                         <ul class="list-group mb-0">
-                            @foreach (var player in Model.Players.Where(p => string.IsNullOrEmpty(p.Team)))
+                            @foreach (var player in Model.Lobby.Players.Where(p => string.IsNullOrEmpty(p.Team)))
                             {
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
                                     @player.Name
@@ -47,7 +47,7 @@
                                     {
                                         <span class="badge bg-success">Sen</span>
                                     }
-                                    @if (Model.RefereeName == player.Name)
+                                    @if (Model.Lobby.RefereeName == player.Name)
                                     {
                                         <span class="badge bg-info"><i class="fas fa-gavel"></i> Hakem</span>
                                     }
@@ -72,29 +72,25 @@
                             <label for="categorySelect" class="col-form-label mb-0"><strong>Kategori:</strong></label>
                         </div>
                         <div class="col">
-                            @if (string.IsNullOrEmpty(Model.Category))
+                            @if (string.IsNullOrEmpty(Model.Lobby.Category))
                             {
                                 <form method="post" action="/Lobby/ChooseCategory" class="d-flex gap-2">
-                                    <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                    <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
                                     <select class="form-select form-select-sm w-auto" name="category" id="categorySelect" required>
                                         <option value="">Seçin</option>
-                                        <option value="Genel Kültür">Genel Kültür</option>
-                                        <option value="Spor">Spor</option>
-                                        <option value="Tarih">Tarih</option>
-                                        <option value="Bilim">Bilim</option>
-                                        <option value="Sanat">Sanat</option>
-                                        <option value="Coğrafya">Coğrafya</option>
-                                        <option value="Eğlence">Eğlence</option>
-                                        <option value="Teknoloji">Teknoloji</option>
+                                        @foreach (var category in Model.Categories)
+                                        {
+                                            <option value="@category.Name">@category.Name</option>
+                                        }
                                     </select>
                                     <button type="submit" class="btn btn-primary btn-sm">Seç</button>
                                 </form>
                             }
                             else
                             {
-                                <span class="badge bg-success fs-6">@Model.Category</span>
+                                <span class="badge bg-success fs-6">@Model.Lobby.Category</span>
                                 <form method="post" action="/Lobby/ChooseCategory" class="d-inline ms-2">
-                                    <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                    <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
                                     <input type="hidden" name="category" value="" />
                                     <button type="submit" class="btn btn-sm btn-outline-secondary">Değiştir</button>
                                 </form>
@@ -105,7 +101,7 @@
                     <div class="row g-2 align-items-center">
                         <div class="col">
                             <form method="post" action="/Lobby/RandomizeTeams" class="d-inline">
-                                <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
                                 <button type="submit" class="btn btn-success btn-sm w-100" onclick="return confirm('Oyuncuları rastgele takımlara dağıtmak istediğinizden emin misiniz?')">
                                     <i class="fas fa-random"></i> Rastgele Dağıt
                                 </button>
@@ -113,7 +109,7 @@
                         </div>
                         <div class="col">
                             <form method="post" action="/Lobby/ResetTeams" class="d-inline">
-                                <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
                                 <button type="submit" class="btn btn-warning btn-sm w-100" onclick="return confirm('Tüm takım atamalarını sıfırlamak istediğinizden emin misiniz?')">
                                     <i class="fas fa-undo"></i> Takımları Sıfırla
                                 </button>
@@ -130,9 +126,9 @@
         </div>
     </div>
 }
-else if (!string.IsNullOrEmpty(Model.Category))
+else if (!string.IsNullOrEmpty(Model.Lobby.Category))
 {
-    <p class="text-center text-muted">Kategori: <strong class="text-success">@Model.Category</strong></p>
+    <p class="text-center text-muted">Kategori: <strong class="text-success">@Model.Lobby.Category</strong></p>
 }
 else
 {
@@ -156,22 +152,22 @@ else
     </div>
 }
 <!-- Hakem seçimi ve rozet -->
-@if (string.IsNullOrEmpty(Model.RefereeName))
+@if (string.IsNullOrEmpty(Model.Lobby.RefereeName))
 {
     <div class="text-center mb-3">
         <form method="post" action="/Lobby/BecomeReferee">
-            <input type="hidden" name="code" value="@Model.LobbyCode" />
+            <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
             <button type="submit" class="btn btn-outline-info">
                 <i class="fas fa-gavel"></i> Hakem olmak istiyorum
             </button>
         </form>
     </div>
 }
-else if (Model.RefereeName == currentPlayerName)
+else if (Model.Lobby.RefereeName == currentPlayerName)
 {
     <div class="text-center mb-3">
         <form method="post" action="/Lobby/LeaveReferee">
-            <input type="hidden" name="code" value="@Model.LobbyCode" />
+            <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
             <button type="submit" class="btn btn-outline-danger">
                 <i class="fas fa-times"></i> Hakemlikten Ayrıl
             </button>
@@ -180,12 +176,12 @@ else if (Model.RefereeName == currentPlayerName)
 }
 
 <!-- Takım kartlarının üstünde hakem kutusu -->
-@if (!string.IsNullOrEmpty(Model.RefereeName))
+@if (!string.IsNullOrEmpty(Model.Lobby.RefereeName))
 {
     <div class="row mb-2">
         <div class="col-12 d-flex justify-content-center">
             <div class="bg-info text-white rounded px-3 py-1 shadow-sm" style="display:inline-block; font-size:1rem;">
-                <i class="fas fa-gavel"></i> Hakem: <strong>@Model.RefereeName</strong>
+                <i class="fas fa-gavel"></i> Hakem: <strong>@Model.Lobby.RefereeName</strong>
             </div>
         </div>
     </div>
@@ -201,7 +197,7 @@ else if (Model.RefereeName == currentPlayerName)
             <div class="card-body d-flex flex-column justify-content-between" style="min-height: 350px;">
                 <!-- Takım oyuncuları listesi -->
                 <ul class="list-group mb-3">
-                    @foreach (var player in Model.Players.Where(p => p.Team == "Sol"))
+                    @foreach (var player in Model.Lobby.Players.Where(p => p.Team == "Sol"))
                     {
                         <li class="list-group-item">
                             <div class="d-flex justify-content-between align-items-center">
@@ -211,11 +207,11 @@ else if (Model.RefereeName == currentPlayerName)
                                     {
                                         <span class="badge bg-success">Sen</span>
                                     }
-                                    @if (Model.GameState?.Team1Volunteer == player.Name)
+                                    @if (Model.Lobby.GameState?.Team1Volunteer == player.Name)
                                     {
                                         <span class="badge bg-danger">Gönüllü</span>
                                     }
-                                    @if (Model.RefereeName == player.Name)
+                                    @if (Model.Lobby.RefereeName == player.Name)
                                     {
                                         <span class="badge bg-info"><i class="fas fa-gavel"></i> Hakem</span>
                                     }
@@ -243,25 +239,21 @@ else if (Model.RefereeName == currentPlayerName)
                 </ul>
                 <!-- Altta Takıma Katıl butonu veya bilgi -->
                 <div class="text-center mt-auto">
-                    @if (!Model.IsGameStarted)
+                    @if (!Model.Lobby.IsGameStarted)
                     {
                         if (currentPlayerTeam != "Sol")
                         {
                             <form method="post" action="/Lobby/ChooseTeam">
-                                <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
                                 <input type="hidden" name="playerName" value="@currentPlayerName" />
                                 <input type="hidden" name="team" value="Sol" />
-                                <button type="submit" class="btn btn-danger w-100">
-                                    @(string.IsNullOrEmpty(currentPlayerTeam) ? "Kırmızı Takıma Katıl" : "Kırmızı Takıma Geç")
-                                </button>
+                                <button type="submit" class="btn btn-danger">Bu Takıma Katıl</button>
                             </form>
                         }
-                        else
-                        {
-                            <div class="alert alert-success mt-2 mb-0 p-2">
-                                <i class="fas fa-check"></i> Bu takımdasınız
-                            </div>
-                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted">Skor: @Model.Lobby.GameState.Team1Score</p>
                     }
                 </div>
             </div>
@@ -276,7 +268,7 @@ else if (Model.RefereeName == currentPlayerName)
             <div class="card-body d-flex flex-column justify-content-between" style="min-height: 350px;">
                 <!-- Takım oyuncuları listesi -->
                 <ul class="list-group mb-3">
-                    @foreach (var player in Model.Players.Where(p => p.Team == "Sağ"))
+                    @foreach (var player in Model.Lobby.Players.Where(p => p.Team == "Sağ"))
                     {
                         <li class="list-group-item">
                             <div class="d-flex justify-content-between align-items-center">
@@ -286,11 +278,11 @@ else if (Model.RefereeName == currentPlayerName)
                                     {
                                         <span class="badge bg-success">Sen</span>
                                     }
-                                    @if (Model.GameState?.Team2Volunteer == player.Name)
+                                    @if (Model.Lobby.GameState?.Team2Volunteer == player.Name)
                                     {
                                         <span class="badge bg-primary">Gönüllü</span>
                                     }
-                                    @if (Model.RefereeName == player.Name)
+                                    @if (Model.Lobby.RefereeName == player.Name)
                                     {
                                         <span class="badge bg-info"><i class="fas fa-gavel"></i> Hakem</span>
                                     }
@@ -318,25 +310,21 @@ else if (Model.RefereeName == currentPlayerName)
                 </ul>
                 <!-- Altta Takıma Katıl butonu veya bilgi -->
                 <div class="text-center mt-auto">
-                    @if (!Model.IsGameStarted)
+                    @if (!Model.Lobby.IsGameStarted)
                     {
                         if (currentPlayerTeam != "Sağ")
                         {
                             <form method="post" action="/Lobby/ChooseTeam">
-                                <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
                                 <input type="hidden" name="playerName" value="@currentPlayerName" />
                                 <input type="hidden" name="team" value="Sağ" />
-                                <button type="submit" class="btn btn-primary w-100">
-                                    @(string.IsNullOrEmpty(currentPlayerTeam) ? "Mavi Takıma Katıl" : "Mavi Takıma Geç")
-                                </button>
+                                <button type="submit" class="btn btn-primary">Bu Takıma Katıl</button>
                             </form>
                         }
-                        else
-                        {
-                            <div class="alert alert-success mt-2 mb-0 p-2">
-                                <i class="fas fa-check"></i> Bu takımdasınız
-                            </div>
-                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted">Skor: @Model.Lobby.GameState.Team2Score</p>
                     }
                 </div>
             </div>
@@ -344,68 +332,31 @@ else if (Model.RefereeName == currentPlayerName)
     </div>
 </div>
 
-@if (!Model.IsGameStarted && !string.IsNullOrEmpty(currentPlayerTeam))
+@if (!Model.Lobby.IsGameStarted && !string.IsNullOrEmpty(currentPlayerTeam))
 {
     <div class="text-center mt-3">
         <form method="post" action="/Lobby/LeaveTeam" class="d-inline">
-            <input type="hidden" name="code" value="@Model.LobbyCode" />
+            <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
             <input type="hidden" name="playerName" value="@currentPlayerName" />
             <button type="submit" class="btn btn-warning">Takımdan Çık</button>
         </form>
     </div>
 }
 
-<!-- Oyunu Başlatma -->
-@if (isHost && !Model.IsGameStarted)
+@if (isHost && !Model.Lobby.IsGameStarted)
 {
-    <div class="text-center mt-4">
-        @{
-            var team1Count = Model.Players.Count(p => p.Team == "Sol");
-            var team2Count = Model.Players.Count(p => p.Team == "Sağ");
-            var hasVolunteers = Model.GameState?.Team1Volunteer != null && Model.GameState?.Team2Volunteer != null;
-            var canStartGame = !string.IsNullOrEmpty(Model.Category) && team1Count > 0 && team2Count > 0 && hasVolunteers;
-        }
-        
-        @if (canStartGame)
-        {
-            <form method="post" action="/Lobby/StartGame">
-                <input type="hidden" name="code" value="@Model.LobbyCode" />
-                <button type="submit" class="btn btn-success btn-lg">
-                    <i class="fas fa-play"></i> Oyunu Başlat
-                </button>
-            </form>
-        }
-        else
-        {
-            <button class="btn btn-success btn-lg" disabled title="Oyunu başlatmak için kategori seçin, her takımda en az bir oyuncu olsun ve her takımdan bir gönüllü olsun">
-                <i class="fas fa-play"></i> Oyunu Başlat
+    <div class="mt-4 text-center">
+        <form method="post" action="/Lobby/StartGame">
+            <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
+            <button type="submit" class="btn btn-lg btn-success w-50 shadow">
+                <i class="fas fa-play-circle"></i> OYUNU BAŞLAT
             </button>
-            <div class="text-muted mt-2">
-                <small>
-                    @if (string.IsNullOrEmpty(Model.Category))
-                    {
-                        <span class="text-warning">• Kategori seçilmedi</span><br />
-                    }
-                    @if (team1Count == 0)
-                    {
-                        <span class="text-warning">• Kırmızı takımda oyuncu yok</span><br />
-                    }
-                    @if (team2Count == 0)
-                    {
-                        <span class="text-warning">• Mavi takımda oyuncu yok</span><br />
-                    }
-                    @if (!hasVolunteers)
-                    {
-                        <span class="text-warning">• Her takımdan bir gönüllü olması gerekiyor</span>
-                    }
-                </small>
-            </div>
-        }
+        </form>
     </div>
 }
 
 @section Scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="/js/peer-hosting.js"></script>
-    <script src="~/js/lobby.js" defer></script>
+    <script src="~/js/lobby.js" asp-append-version="true"></script>
 }

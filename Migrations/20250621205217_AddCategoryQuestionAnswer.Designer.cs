@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using YourTurn.Web.Data;
@@ -11,9 +12,11 @@ using YourTurn.Web.Data;
 namespace YourTurn.Web.Migrations
 {
     [DbContext(typeof(YourTurnDbContext))]
-    partial class YourTurnDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250621205217_AddCategoryQuestionAnswer")]
+    partial class AddCategoryQuestionAnswer
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

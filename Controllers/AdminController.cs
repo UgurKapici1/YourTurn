@@ -407,6 +407,196 @@ namespace YourTurn.Web.Controllers
             return View(viewModel);
         }
 
+        [Route("admin/categories")]
+        public async Task<IActionResult> Categories()
+        {
+            if (User.Identity?.IsAuthenticated != true)
+            {
+                return RedirectToAction("Login");
+            }
+
+            var categories = await _context.Categories
+                .Include(c => c.Questions)
+                .ThenInclude(q => q.Answers)
+                .ToListAsync();
+
+            var viewModel = new AdminCategoriesViewModel
+            {
+                Categories = categories
+            };
+
+            return View(viewModel);
+        }
+
+        [HttpPost]
+        [Route("admin/categories/add")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddCategory([FromForm] Category model)
+        {
+            if (ModelState.IsValid)
+            {
+                _context.Categories.Add(model);
+                await _context.SaveChangesAsync();
+                return Json(new { success = true });
+            }
+
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            var errorMessage = "Kategori eklenirken bir hata oluştu: " + string.Join(", ", errors);
+            return Json(new { success = false, message = errorMessage });
+        }
+
+        [HttpPost]
+        [Route("admin/questions/add")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddQuestion([FromForm] Question model)
+        {
+            if (ModelState.IsValid)
+            {
+                await _context.Questions.AddAsync(model);
+                await _context.SaveChangesAsync();
+                await LogAdminAction(GetAdminId(), "AddQuestion", $"Soru eklendi: {model.Text}");
+                return Json(new { success = true, message = "Soru başarıyla eklendi." });
+            }
+            // Log validation errors
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            await LogAdminAction(GetAdminId(), "AddQuestionError", $"Soru eklenemedi: {string.Join(", ", errors)}");
+
+            return Json(new { success = false, message = "Soru eklenemedi.", errors = errors });
+        }
+
+        [HttpPost]
+        [Route("admin/answers/add")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddAnswer([FromForm] Answer model)
+        {
+            if (ModelState.IsValid)
+            {
+                await _context.Answers.AddAsync(model);
+                await _context.SaveChangesAsync();
+                await LogAdminAction(GetAdminId(), "AddAnswer", $"Cevap eklendi: {model.Text}");
+                return Json(new { success = true, message = "Cevap başarıyla eklendi." });
+            }
+            var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+            return Json(new { success = false, message = "Cevap eklenemedi.", errors = errors });
+        }
+
+        [HttpPost("admin/categories/delete/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteCategory(int id)
+        {
+            var category = await _context.Categories.FindAsync(id);
+            if (category == null)
+            {
+                return Json(new { success = false, message = "Kategori bulunamadı." });
+            }
+
+            _context.Categories.Remove(category);
+            await _context.SaveChangesAsync();
+            await LogAdminAction(GetAdminId(), "DeleteCategory", $"Kategori silindi: {category.Name}");
+            return Json(new { success = true, message = "Kategori başarıyla silindi." });
+        }
+
+        [HttpPost("admin/questions/delete/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteQuestion(int id)
+        {
+            var question = await _context.Questions.FindAsync(id);
+            if (question == null)
+            {
+                return Json(new { success = false, message = "Soru bulunamadı." });
+            }
+
+            _context.Questions.Remove(question);
+            await _context.SaveChangesAsync();
+            await LogAdminAction(GetAdminId(), "DeleteQuestion", $"Soru silindi: {question.Text}");
+            return Json(new { success = true, message = "Soru başarıyla silindi." });
+        }
+
+        [HttpPost("admin/answers/delete/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteAnswer(int id)
+        {
+            var answer = await _context.Answers.FindAsync(id);
+            if (answer == null)
+            {
+                return Json(new { success = false, message = "Cevap bulunamadı." });
+            }
+
+            _context.Answers.Remove(answer);
+            await _context.SaveChangesAsync();
+            await LogAdminAction(GetAdminId(), "DeleteAnswer", $"Cevap silindi: {answer.Text}");
+            return Json(new { success = true, message = "Cevap başarıyla silindi." });
+        }
+
+        [HttpPost("admin/categories/edit")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditCategory([FromForm] Category model)
+        {
+            if (ModelState.IsValid)
+            {
+                var category = await _context.Categories.FindAsync(model.Id);
+                if (category == null)
+                {
+                    return Json(new { success = false, message = "Kategori bulunamadı." });
+                }
+
+                category.Name = model.Name;
+                _context.Categories.Update(category);
+                await _context.SaveChangesAsync();
+                await LogAdminAction(GetAdminId(), "EditCategory", $"Kategori güncellendi: {category.Name}");
+                return Json(new { success = true, message = "Kategori başarıyla güncellendi." });
+            }
+            return Json(new { success = false, message = "Model geçerli değil." });
+        }
+
+        [HttpPost("admin/questions/edit")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditQuestion([FromForm] Question model)
+        {
+            if (ModelState.IsValid)
+            {
+                var question = await _context.Questions.FindAsync(model.Id);
+                if (question == null)
+                {
+                    return Json(new { success = false, message = "Soru bulunamadı." });
+                }
+
+                question.Text = model.Text;
+                _context.Questions.Update(question);
+                await _context.SaveChangesAsync();
+                await LogAdminAction(GetAdminId(), "EditQuestion", $"Soru güncellendi: {question.Text}");
+                return Json(new { success = true, message = "Soru başarıyla güncellendi." });
+            }
+            return Json(new { success = false, message = "Model geçerli değil." });
+        }
+
+        [HttpPost("admin/answers/edit")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditAnswer([FromForm] Answer model)
+        {
+            if (ModelState.IsValid)
+            {
+                var answer = await _context.Answers.FindAsync(model.Id);
+                if (answer == null)
+                {
+                    return Json(new { success = false, message = "Cevap bulunamadı." });
+                }
+
+                answer.Text = model.Text;
+                answer.IsCorrect = model.IsCorrect;
+                _context.Answers.Update(answer);
+                await _context.SaveChangesAsync();
+                await LogAdminAction(GetAdminId(), "EditAnswer", $"Cevap güncellendi: {answer.Text}");
+                return Json(new { success = true, message = "Cevap başarıyla güncellendi." });
+            }
+            return Json(new { success = false, message = "Model geçerli değil." });
+        }
+
+        private int GetAdminId()
+        {
+            return int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+        }
+
         // Yönetici eylemlerini veritabanına kaydeder
         private async Task LogAdminAction(int adminId, string action, string details = null)
         {
@@ -459,5 +649,10 @@ namespace YourTurn.Web.Controllers
         public int PageSize { get; set; }
         public int TotalCount { get; set; }
         public int TotalPages { get; set; }
+    }
+
+    public class AdminCategoriesViewModel
+    {
+        public List<Category> Categories { get; set; } = new List<Category>();
     }
 } 

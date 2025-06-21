@@ -1,28 +1,19 @@
-@using YourTurn.Web.Services
-@model YourTurn.Web.Models.Lobby
+@inject YourTurn.Web.Services.GameService _gameService
+@model YourTurn.Web.Controllers.GameController.GameViewModel
 
 @{
-    ViewData["Title"] = "Oyun - " + Model.LobbyCode;
+    ViewData["Title"] = "Oyun - " + Model.Lobby.LobbyCode;
     var currentPlayerName = ViewBag.CurrentPlayerName?.ToString();
-    var gameState = Model.GameState;
+    var gameState = Model.Lobby.GameState;
     var isMyTurn = gameState?.CurrentTurn == currentPlayerName;
     var isActivePlayer = currentPlayerName == gameState?.ActivePlayer1 || currentPlayerName == gameState?.ActivePlayer2;
-    var currentPlayer = Model.Players.FirstOrDefault(p => p.Name == currentPlayerName);
+    var currentPlayer = Model.Lobby.Players.FirstOrDefault(p => p.Name == currentPlayerName);
     var currentPlayerTeam = currentPlayer?.Team ?? "";
 }
 
 @Html.AntiForgeryToken()
 
 <div class="container-fluid mt-3">
-    <!-- Round Başlangıç Mesajı -->
-    @if (TempData["RoundStartMessage"] != null)
-    {
-        <div class="alert alert-info alert-dismissible fade show" role="alert">
-            <i class="fas fa-dice"></i> <strong>@TempData["RoundStartMessage"]</strong>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-
     <!-- Üst Bilgi Paneli -->
     <div class="row">
         <div class="col-12">
@@ -30,8 +21,8 @@
                 <div class="card-body text-center">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <div></div> <!-- Spacing -->
-                        <h4>@Model.Category - Lobby: <span id="lobbyCode" class="text-warning" style="cursor: pointer; user-select: all;" onclick="copyLobbyCode()" title="Kopyalamak için tıklayın">@Model.LobbyCode</span></h4>
-                        @if (Model.HostPlayerName == currentPlayerName)
+                        <h4>@Model.Lobby.Category - Lobi: <span id="lobbyCode" class="text-warning" style="cursor: pointer; user-select: all;" onclick="copyLobbyCode()" title="Kopyalamak için tıklayın">@Model.Lobby.LobbyCode</span></h4>
+                        @if (Model.Lobby.HostPlayerName == currentPlayerName)
                         {
                             <button class="btn btn-warning btn-sm" onclick="resetGame()" title="Oyunu sıfırla ve lobiye dön">
                                 <i class="fas fa-undo"></i> Oyunu Sıfırla
@@ -40,61 +31,29 @@
                     </div>
                     <div class="row">
                         <div class="col-4 text-start">
-                            <h5 class="text-danger">🔴 Sol Takım: <span id="team1Score">@gameState?.Team1Score</span></h5>
+                            <h5 class="text-danger">🔴 Kırmızı Takım: <span id="team1Score">@gameState?.Team1Score</span></h5>
                             <div id="team1Active">
-                                @if (gameState?.IsWaitingForVolunteers == true)
-                                {
-                                    if (string.IsNullOrEmpty(gameState.Team1Volunteer))
-                                    {
-                                        <small>Gönüllü bekleniyor...</small>
-                                    }
-                                    else
-                                    {
-                                        <small>Aktif: @gameState.Team1Volunteer</small>
-                                    }
-                                }
-                                else
-                                {
                                     <small>Aktif: @gameState?.ActivePlayer1</small>
-                                }
                             </div>
                         </div>
                         <div class="col-4 text-center">
                             <div id="gameStatus">
-                                @if (gameState?.IsWaitingForVolunteers == true)
-                                {
-                                    <span class="badge bg-info fs-6">Gönüllü Bekleniyor</span>
-                                }
-                                else if (gameState?.IsGameActive == true)
+                                @if (gameState?.IsGameActive == true)
                                 {
                                     <span class="badge bg-success fs-6">Oyun Devam Ediyor</span>
                                 }
                                 else if (!string.IsNullOrEmpty(gameState?.Winner))
                                 {
                                     <span class="badge bg-warning fs-6">
-                                        @(gameState.Winner == "Sol" ? "🔴 Sol Takım" : "🔵 Sağ Takım") Kazandı!
+                                        @(gameState.Winner == "Sol" ? "🔴 Kırmızı Takım" : "🔵 Mavi Takım") Kazandı!
                                     </span>
                                 }
                             </div>
                         </div>
                         <div class="col-4 text-end">
-                            <h5 class="text-primary">🔵 Sağ Takım: <span id="team2Score">@gameState?.Team2Score</span></h5>
+                            <h5 class="text-primary">🔵 Mavi Takım: <span id="team2Score">@gameState?.Team2Score</span></h5>
                             <div id="team2Active">
-                                @if (gameState?.IsWaitingForVolunteers == true)
-                                {
-                                    if (string.IsNullOrEmpty(gameState.Team2Volunteer))
-                                    {
-                                        <small>Gönüllü bekleniyor...</small>
-                                    }
-                                    else
-                                    {
-                                        <small>Aktif: @gameState.Team2Volunteer</small>
-                                    }
-                                }
-                                else
-                                {
                                     <small>Aktif: @gameState?.ActivePlayer2</small>
-                                }
                             </div>
                         </div>
                     </div>
@@ -103,71 +62,21 @@
         </div>
     </div>
 
-    <!-- Gönüllü Butonları -->
-    @if (gameState?.IsWaitingForVolunteers == true)
-    {
-        <div class="row mb-4">
-            <div class="col-6 text-center">
-                @if (currentPlayerTeam == "Sol" && string.IsNullOrEmpty(gameState.Team1Volunteer))
-                {
-                    <button class="btn btn-danger btn-lg" onclick="volunteerForTeam('Sol')">
-                        <i class="fas fa-hand-paper"></i> Gönüllü Ol
-                    </button>
-                }
-            </div>
-            <div class="col-6 text-center">
-                @if (currentPlayerTeam == "Sağ" && string.IsNullOrEmpty(gameState.Team2Volunteer))
-                {
-                    <button class="btn btn-primary btn-lg" onclick="volunteerForTeam('Sağ')">
-                        <i class="fas fa-hand-paper"></i> Gönüllü Ol
-                    </button>
-                }
-            </div>
-        </div>
-    }
-
-    <!-- Süre Çubuğu (Yeni Tasarım) -->
+    <!-- Süre Çubuğu -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header text-center">
                     <h5>⏱️ Süre Çubuğu</h5>
-
                 </div>
                 <div class="card-body">
-                    <div class="position-relative" style="height: 80px;">
-                        <!-- Ana çubuk -->
-                        <div class="bg-dark" style="height: 20px; width: 100%; position: absolute; top: 30px; border-radius: 10px; border: 2px solid #fff;"></div>
-                        
-                        <!-- Sol patlama bölgesi -->
-                        <div class="bg-danger" style="height: 20px; width: 10%; position: absolute; top: 30px; left: 0; border-radius: 10px 0 0 10px;"></div>
-                        
-                        <!-- Sağ patlama bölgesi -->
-                        <div class="bg-primary" style="height: 20px; width: 10%; position: absolute; top: 30px; right: 0; border-radius: 0 10px 10px 0;"></div>
-                        
-                        <!-- Orta nokta -->
-                        <div class="position-absolute" style="left: 50%; top: 25px; transform: translateX(-50%); width: 2px; height: 30px; background: #fff;"></div>
-                        <div class="position-absolute" style="left: 50%; top: 55px; transform: translateX(-50%); font-size: 10px; color: #666;">0</div>
-                        
-                        <!-- Sol ve sağ uç işaretleri -->
-                        <div class="position-absolute" style="left: 0; top: 55px; font-size: 10px; color: #666;"></div>
-                        <div class="position-absolute" style="right: 0; top: 55px; font-size: 10px; color: #666;"></div>
-                        
-                        <!-- Hareket eden nokta -->
-                        <div id="movingPoint" class="position-absolute" style="top: 20px; transform: translateX(-50%); font-size: 25px; transition: left 0.1s ease;">
+                    <div class="position-relative" style="height: 40px;">
+                        <div class="bg-dark" style="height: 20px; width: 100%; position: absolute; top: 10px; border-radius: 10px; border: 2px solid #fff;"></div>
+                        <div class="bg-danger" style="height: 20px; width: 10%; position: absolute; top: 10px; left: 0; border-radius: 10px 0 0 10px;"></div>
+                        <div class="bg-primary" style="height: 20px; width: 10%; position: absolute; top: 10px; right: 0; border-radius: 0 10px 10px 0;"></div>
+                        <div class="position-absolute" style="left: 50%; top: 5px; transform: translateX(-50%); width: 2px; height: 30px; background: #fff;"></div>
+                        <div id="movingPoint" class="position-absolute" style="top: 0px; transform: translateX(-50%); font-size: 25px; transition: left 0.1s ease;">
                             ⚡
-                        </div>
-                    </div>
-                    
-                    <!-- Pozisyon bilgisi -->
-                    <div class="text-center mt-3">
-                        <div class="row">
-                            <div class="col-6 text-danger">
-                                <small>Sol Takım Bölgesi</small>
-                            </div>
-                            <div class="col-6 text-primary">
-                                <small>Sağ Takım Bölgesi</small>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -183,19 +92,23 @@
                     <h5>Soru</h5>
                 </div>
                 <div class="card-body text-center">
-                    <h4 class="text-primary">@(gameState?.CurrentQuestion?.Question ?? "Oyun henüz başlamadı")</h4>
-                    @if (Model.RefereeName == currentPlayerName && gameState?.CurrentQuestion != null)
+                    <h4 class="text-primary">@(gameState?.CurrentQuestion?.Text ?? "Oyun henüz başlamadı")</h4>
+                    
+                    @if (Model.Lobby.RefereeName == currentPlayerName && gameState?.CurrentQuestion != null)
                     {
-                        <div class="alert alert-info mt-3"><strong>Cevap:</strong> @gameState.CurrentQuestion.Answer</div>
-                        
-                        @if (gameState.IsGameActive && !gameState.IsTeam1VolunteerAnswerValidated)
-                        {
-                            <button class="btn btn-success mt-2" onclick="validateVolunteerAnswer('Sol')">🔴 Sol Gönüllüyü Doğrula</button>
-                        }
-                        @if (gameState.IsGameActive && !gameState.IsTeam2VolunteerAnswerValidated)
-                        {
-                            <button class="btn btn-primary mt-2" onclick="validateVolunteerAnswer('Sağ')">🔵 Sağ Gönüllüyü Doğrula</button>
-                        }
+                        var correctAnswer = gameState.CurrentQuestion.Answers.FirstOrDefault(a => a.IsCorrect)?.Text;
+                        <div class="alert alert-info mt-3"><strong>Doğru Cevap:</strong> @correctAnswer</div>
+
+                        <div id="validation-buttons" class="mt-2">
+                            <button id="validate-sol" class="btn btn-outline-danger" onclick="validateAnswer('Sol')" 
+                                @(gameState.IsTeam1VolunteerAnswerValidated ? "disabled" : "")>
+                                🔴 Kırmızı Takım @(gameState.IsTeam1VolunteerAnswerValidated ? "Doğrulandı" : "Doğrula")
+                            </button>
+                            <button id="validate-sag" class="btn btn-outline-primary" onclick="validateAnswer('Sağ')"
+                                @(gameState.IsTeam2VolunteerAnswerValidated ? "disabled" : "")>
+                                🔵 Mavi Takım @(gameState.IsTeam2VolunteerAnswerValidated ? "Doğrulandı" : "Doğrula")
+                            </button>
+                        </div>
                     }
                     
                     <div id="turnInfo">
@@ -206,10 +119,6 @@
                                     Sıra: <strong class="@(gameState.CurrentTurn == gameState.ActivePlayer1 ? "text-danger" : "text-primary")">
                                         @gameState.CurrentTurn
                                     </strong>
-                                    <br>
-                                    <small class="@(gameState.CurrentTurn == gameState.ActivePlayer1 ? "text-danger" : "text-primary")">
-                                        (@(gameState.CurrentTurn == gameState.ActivePlayer1 ? "🔴 Sol" : "🔵 Sağ") Takımı)
-                                    </small>
                                 </p>
                                 <div id="timerStatus" class="mt-2">
                                     @if (gameState.IsTimerRunning)
@@ -230,7 +139,6 @@
     </div>
 
     <!-- Kontrol Butonları -->
-    <div id="gameControls">
         @if (gameState?.IsGameActive == true && isActivePlayer)
         {
             <div class="row mb-4">
@@ -239,503 +147,331 @@
                             onclick="passTurn()" 
                             @(isMyTurn ? "" : "disabled")>
                         <i class="fas @(isMyTurn ? "fa-arrow-right" : "fa-clock")"></i> 
-                        @(isMyTurn ? "Sıra Sende!" : "Sıra Rakipte")
+                    @(isMyTurn ? "Cevapla!" : "Sıra Rakipte")
                     </button>
-                    @if (isMyTurn)
-                    {
-                        <div class="mt-2">
-                            <small class="text-warning">⚠️ Butona tıkladığın anda süre karşı tarafa doğru hareket etmeye başlayacak!</small>
-                        </div>
-                    }
                 </div>
             </div>
         }
-    </div>
 
     <!-- Oyun Sonu -->
-    <div id="gameEndControls">
         @if (gameState?.IsGameActive == false && !string.IsNullOrEmpty(gameState.Winner))
         {
             <div class="row mb-4">
                 <div class="col-12 text-center">
                     @{
-                        var isGameCompleted = GameService.HasWinningTeam(gameState.Team1Score, gameState.Team2Score);
-                        var gameWinner = GameService.GetWinningTeam(gameState.Team1Score, gameState.Team2Score);
+                    var isGameCompleted = _gameService.HasWinningTeam(gameState.Team1Score, gameState.Team2Score);
+                    var gameWinner = _gameService.GetWinningTeam(gameState.Team1Score, gameState.Team2Score);
                     }
                     
                     @if (isGameCompleted)
                     {
                         <div class="alert alert-success">
                             <h4>🏆 Oyun Bitti!</h4>
-                            <p><strong>@(gameWinner == "Sol" ? "🔴 Sol Takım" : "🔵 Sağ Takım")</strong> oyunu kazandı!</p>
-                            <p class="mb-0">Final Skor: <strong>🔴 Sol: @gameState.Team1Score - 🔵 Sağ: @gameState.Team2Score</strong></p>
+                        <p><strong>@(gameWinner == "Sol" ? "🔴 Kırmızı Takım" : "🔵 Mavi Takım")</strong> oyunu kazandı!</p>
                         </div>
-                        
-                        @if (Model.HostPlayerName == currentPlayerName)
+                    @if (Model.Lobby.HostPlayerName == currentPlayerName)
                         {
-                            <form method="post" action="/Game/StartNewRound" style="display: inline;">
-                                <input type="hidden" name="code" value="@Model.LobbyCode" />
-                                <button type="submit" class="btn btn-success btn-lg">
-                                    <i class="fas fa-home"></i> Lobeye Dön
+                        <button class="btn btn-primary btn-lg" onclick="resetGame()">
+                            <i class="fas fa-home"></i> Herkesi Lobiye Döndür
                                 </button>
-                            </form>
+                    }
+                    else
+                    {
+                        <p class="text-muted">Host'un herkesi lobiye döndürmesi bekleniyor...</p>
                         }
                     }
                     else
                     {
                         <div class="alert alert-warning">
                             <h4>🎉 Round Bitti!</h4>
-                            <p><strong>@(gameState.Winner == "Sol" ? "🔴 Sol Takım" : "🔵 Sağ Takım")</strong> bu round'u kazandı!</p>
-                            <p class="mb-0">Mevcut Skor: <strong>🔴 Sol: @gameState.Team1Score - 🔵 Sağ: @gameState.Team2Score</strong></p>
+                        <p><strong>@(gameState.Winner == "Sol" ? "🔴 Kırmızı Takım" : "🔵 Mavi Takım")</strong> bu round'u kazandı!</p>
                         </div>
                         
-                        @if (Model.HostPlayerName == currentPlayerName)
+                    @if (Model.Lobby.HostPlayerName == currentPlayerName)
                         {
-                            <!-- Kategori Seçim Bölümü -->
                             <div class="card mt-3">
-                                <div class="card-header bg-info text-white">
-                                    <h6><i class="fas fa-tags"></i> Kategori Seçimi (İsteğe Bağlı)</h6>
-                                </div>
                                 <div class="card-body">
-                                    <p class="text-muted mb-3">
-                                        <i class="fas fa-info-circle"></i> 
-                                        Yeni round başlamadan önce kategori değiştirebilirsiniz. 
-                                        Boş bırakırsanız mevcut kategori korunur.
-                                    </p>
-                                    <form method="post" action="/Game/ChangeCategory" class="row g-3">
-                                        <input type="hidden" name="code" value="@Model.LobbyCode" />
-                                        <div class="col-md-8">
-                                            <select class="form-select" name="category">
-                                                <option value="">Mevcut Kategoriyi Koru (@Model.Category)</option>
-                                                <option value="Genel Kültür">🎓 Genel Kültür</option>
-                                                <option value="Spor">⚽ Spor</option>
-                                                <option value="Tarih">📚 Tarih</option>
-                                                <option value="Bilim">🔬 Bilim</option>
-                                                <option value="Sanat">🎨 Sanat</option>
-                                                <option value="Coğrafya">🌍 Coğrafya</option>
-                                                <option value="Eğlence">🎮 Eğlence</option>
-                                                <option value="Teknoloji">💻 Teknoloji</option>
+                                <form method="post" action="/Game/StartNewRound" class="row g-3 justify-content-center align-items-center">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
+                                    <div class="col-md-6">
+                                        <label for="categorySelect" class="form-label">Yeni Round için Kategori Değiştir (İsteğe Bağlı)</label>
+                                        <select class="form-select" name="newCategoryName" id="categorySelect">
+                                            <option value="">Mevcut Kategoriyi Koru (@Model.Lobby.Category)</option>
+                                            @foreach (var category in Model.Categories)
+                                            {
+                                                <option value="@category.Name">@category.Name</option>
+                                            }
                                             </select>
                                         </div>
-                                        <div class="col-md-4">
-                                            <button type="submit" class="btn btn-outline-info">
-                                                <i class="fas fa-sync"></i> Kategori Değiştir
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                            
-                            <!-- Yeni Round Başlat Butonu -->
-                            <div class="mt-3">
-                                <form method="post" action="/Game/StartNewRound" style="display: inline;">
-                                    <input type="hidden" name="code" value="@Model.LobbyCode" />
+                                    <div class="col-md-4 mt-auto">
                                     <button type="submit" class="btn btn-primary btn-lg">
                                         <i class="fas fa-redo"></i> Yeni Round Başlat
                                     </button>
+                                    </div>
                                 </form>
                             </div>
-                        }
+                        </div>
                     }
+                }
                 </div>
             </div>
         }
-    </div>
 
-    <!-- Oyuncu Listesi -->
-    <div class="row">
+    <!-- Oyuncu Listeleri -->
+    <div class="row mt-4">
         <div class="col-md-6">
-            <div class="card">
+            <div class="card border-danger">
                 <div class="card-header bg-danger text-white">
-                    <h6 class="mb-0">🔴 Sol Takım</h6>
+                    <h6 class="mb-0">🔴 Kırmızı Takım</h6>
                 </div>
-                <div class="card-body">
-                    @foreach (var player in Model.Players.Where(p => p.Team == "Sol"))
+                <ul class="list-group list-group-flush" id="team1Players">
+                    @foreach (var player in Model.Lobby.Players.Where(p => p.Team == "Sol"))
                     {
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span>@player.Name</span>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            @player.Name
                             <div>
                                 @if (player.Name == gameState?.ActivePlayer1)
                                 {
-                                    <span class="badge bg-success">AKTIF</span>
+                                    <span class="badge bg-success">AKTİF</span>
                                 }
                                 @if (player.Name == currentPlayerName)
                                 {
                                     <span class="badge bg-info">SEN</span>
                                 }
                             </div>
-                        </div>
+                        </li>
                     }
-                </div>
+                </ul>
             </div>
         </div>
-        
         <div class="col-md-6">
-            <div class="card">
+            <div class="card border-primary">
                 <div class="card-header bg-primary text-white">
-                    <h6 class="mb-0">🔵 Sağ Takım</h6>
+                    <h6 class="mb-0">🔵 Mavi Takım</h6>
                 </div>
-                <div class="card-body">
-                    @foreach (var player in Model.Players.Where(p => p.Team == "Sağ"))
+                <ul class="list-group list-group-flush" id="team2Players">
+                    @foreach (var player in Model.Lobby.Players.Where(p => p.Team == "Sağ"))
                     {
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span>@player.Name</span>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            @player.Name
                             <div>
                                 @if (player.Name == gameState?.ActivePlayer2)
                                 {
-                                    <span class="badge bg-success">AKTIF</span>
+                                    <span class="badge bg-success">AKTİF</span>
                                 }
                                 @if (player.Name == currentPlayerName)
                                 {
                                     <span class="badge bg-info">SEN</span>
                                 }
                             </div>
-                        </div>
+                        </li>
                     }
-                </div>
+                </ul>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Loading Spinner -->
-<div id="loadingSpinner" class="d-none position-fixed top-50 start-50 translate-middle" style="z-index: 9999;">
-    <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">Loading...</span>
-    </div>
-</div>
 
 @section Scripts {
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script>
+        const lobbyCode = "@Model.Lobby.LobbyCode";
+        const currentPlayerName = "@currentPlayerName";
+        const isReferee = "@(Model.Lobby.RefereeName == currentPlayerName)";
+        const requestVerificationToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        // Check if the page was reloaded due to round end to prevent loops
+        const roundOverReloaded = sessionStorage.getItem('roundOverReloaded');
+        if (roundOverReloaded) {
+            sessionStorage.removeItem('roundOverReloaded');
+        }
+
         const connection = new signalR.HubConnectionBuilder()
             .withUrl("/GameHub")
             .build();
 
         let gameUpdateInterval;
-        let currentFusePosition = @(gameState?.FusePosition ?? 0);
-        let isTimerRunning = @(gameState?.IsTimerRunning.ToString().ToLower() ?? "false");
 
-        connection.start().then(() => {
-            connection.invoke("AddToGroup", "@Model.LobbyCode");
-            console.log("SignalR bağlantısı kuruldu");
-            
-            // Sürekli güncelleme başlat
-            startGameUpdates();
-        }).catch(err => console.error("SignalR bağlantı hatası:", err));
-
-        connection.on("UpdateGame", function () {
-            console.log("Game state updated from server, refreshing UI.");
-            fetchGameStateAndUpdateUI();
-        });
-
-        connection.on("NewRoundStarted", function () {
-            console.log("New round is starting, reloading the page.");
+        // SignalR Event Listeners
+        connection.on("UpdateGame", () => fetchAndUpdateUI());
+        connection.on("NewRoundStarted", () => {
+            sessionStorage.removeItem('roundOverReloaded'); // Clear flag before new round
             location.reload();
         });
-
-        connection.on("GameReset", function () {
-            console.log("Oyun sıfırlandı, lobiye dönülüyor");
+        connection.on("GameReset", () => {
             alert("Host oyunu sıfırladı. Lobiye dönülüyor...");
-            window.location.href = "/Lobby/LobbyRoom?code=@Model.LobbyCode";
+            window.location.href = `/Lobby/LobbyRoom?code=${lobbyCode}`;
         });
 
-        // Sayfa kapatıldığında gruptan çık
-        window.addEventListener("beforeunload", function() {
-            connection.invoke("RemoveFromGroup", "@Model.LobbyCode");
-            if (gameUpdateInterval) {
-                clearInterval(gameUpdateInterval);
-            }
-        });
-
-        async function fetchGameStateAndUpdateUI() {
+        // Fetch and UI Update Logic
+        async function fetchAndUpdateUI() {
             try {
-                const response = await fetch(`/Game/GetGameState?code=@Model.LobbyCode`);
-                const result = await response.json();
+                const response = await fetch(`/Game/GetGameState?code=${lobbyCode}`);
+                if (!response.ok) throw new Error('Network response was not ok');
                 
-                if (result.success) {
-                    updateGameUI(result);
+                const state = await response.json();
+                if (state.success) {
+                    updateUI(state);
                 } else {
-                    // If game state fails, it might be over. Redirect to lobby.
-                    console.log("Could not fetch game state, redirecting to lobby.");
-                    window.location.href = `/Lobby/LobbyRoom?code=@Model.LobbyCode`;
+                    if (gameUpdateInterval) clearInterval(gameUpdateInterval);
+                    window.location.href = `/Lobby/LobbyRoom?code=${lobbyCode}`;
                 }
             } catch (error) {
                 console.error("Error fetching game state:", error);
+                if (gameUpdateInterval) clearInterval(gameUpdateInterval);
             }
         }
 
-        function startGameUpdates() {
-            // Periyodik güncelleme devam edebilir, ancak anlık güncellemeler için fetchGameStateAndUpdateUI kullanılacak
-            if (gameUpdateInterval) clearInterval(gameUpdateInterval); // Mevcut intervali temizle
+        function updateUI(state) {
+            // Update scores
+            document.getElementById('team1Score').textContent = state.team1Score;
+            document.getElementById('team2Score').textContent = state.team2Score;
             
-            // Her 250ms'de bir oyun durumunu güncelle
-            gameUpdateInterval = setInterval(async () => {
-                try {
-                    const response = await fetch(`/Game/GetGameState?code=@Model.LobbyCode`);
-                    const result = await response.json();
-                    
-                    if (result.success) {
-                        updateGameUI(result);
-                    }
-                } catch (error) {
-                    console.error("Oyun durumu güncelleme hatası:", error);
+            // Update player lists
+            const team1Players = document.getElementById('team1Players');
+            const team2Players = document.getElementById('team2Players');
+            team1Players.innerHTML = '';
+            team2Players.innerHTML = '';
+
+            state.players.forEach(player => {
+                let badges = '';
+                if (player.name === state.activePlayer1 || player.name === state.activePlayer2) {
+                    badges += '<span class="badge bg-success">AKTİF</span> ';
                 }
-            }, 250);
-        }
+                if (player.name === currentPlayerName) {
+                    badges += '<span class="badge bg-info">SEN</span>';
+                }
 
-        function updateGameUI(gameData) {
-            // Fuse pozisyonunu güncelle
-            currentFusePosition = gameData.fusePosition;
-            updateFusePosition(currentFusePosition);
+                const playerEl = `<li class="list-group-item d-flex justify-content-between align-items-center">${player.name} <div>${badges}</div></li>`;
+
+                if (player.team === 'Sol') {
+                    team1Players.innerHTML += playerEl;
+                } else if (player.team === 'Sağ') {
+                    team2Players.innerHTML += playerEl;
+                }
+            });
+
+            // Update active players display (this might be redundant now but good for fallback)
+            document.getElementById('team1Active').innerHTML = `<small>Aktif: ${state.activePlayer1 || 'N/A'}</small>`;
+            document.getElementById('team2Active').innerHTML = `<small>Aktif: ${state.activePlayer2 || 'N/A'}</small>`;
             
-            // Timer durumunu güncelle
-            const timerStatus = document.getElementById('timerStatus');
-            if (gameData.isTimerRunning) {
-                timerStatus.innerHTML = '<span class="badge bg-warning">⏰ Süre İşliyor!</span>';
-            } else {
-                timerStatus.innerHTML = '<span class="badge bg-secondary">⏸️ Süre Durdu</span>';
-            }
-            
-            // Skorları güncelle
-            document.getElementById('team1Score').textContent = gameData.team1Score;
-            document.getElementById('team2Score').textContent = gameData.team2Score;
-            
-            // Sıra Sende butonunu güncelle
+            // Update fuse position
+            const movingPoint = document.getElementById('movingPoint');
+            const percentage = ((state.fusePosition + 100) / 200) * 100;
+            movingPoint.style.left = percentage + '%';
+
+            // Update pass button
             const passTurnBtn = document.getElementById('passTurnBtn');
             if (passTurnBtn) {
-                const currentPlayerName = '@currentPlayerName';
-                const isMyTurn = gameData.currentTurn === currentPlayerName;
-                
-                if (isMyTurn) {
-                    passTurnBtn.className = 'btn btn-success btn-lg';
-                    passTurnBtn.disabled = false;
-                    passTurnBtn.innerHTML = '<i class="fas fa-arrow-right"></i> Cevapla';
-                } else {
-                    passTurnBtn.className = 'btn btn-secondary btn-lg';
-                    passTurnBtn.disabled = true;
-                    passTurnBtn.innerHTML = '<i class="fas fa-clock"></i> Sıra Rakipte';
-                }
+                const isMyTurn = state.currentTurn === currentPlayerName;
+                passTurnBtn.disabled = !isMyTurn;
+                passTurnBtn.innerHTML = isMyTurn 
+                    ? '<i class="fas fa-arrow-right"></i> Cevapla!' 
+                    : '<i class="fas fa-clock"></i> Sıra Rakipte';
+                passTurnBtn.className = isMyTurn ? 'btn btn-lg btn-success' : 'btn btn-lg btn-secondary';
             }
-            
-            // Oyun bittiğinde
-            if (!gameData.isGameActive && gameData.winner) {
-                // Oyun sonu mesajını göster
-                const gameStatus = document.getElementById('gameStatus');
-                
-                if (gameData.isGameCompleted) {
-                    // Oyun tamamen bitti (5 puana ulaşıldı)
-                    gameStatus.innerHTML = `<span class="badge bg-success fs-6">🏆 ${gameData.gameWinner == "Sol" ? "🔴 Sol Takım" : "🔵 Sağ Takım"} Oyunu Kazandı!</span>`;
-                } else {
-                    // Sadece round bitti
-                    gameStatus.innerHTML = `<span class="badge bg-warning fs-6">${gameData.winner == "Sol" ? "🔴 Sol Takım" : "🔵 Sağ Takım"} Round'u Kazandı!</span>`;
-                }
-                
-                // Interval'ı durdur
-                if (gameUpdateInterval) {
-                    clearInterval(gameUpdateInterval);
-                }
-                
-                // Sayfayı yenile (oyun sonu ekranı için)
-                setTimeout(() => {
-                    location.reload();
-                }, 2000);
-            }
-        }
 
-        function updateFusePosition(position) {
-            const movingPoint = document.getElementById('movingPoint');
-            // Position -100 ile 100 arası, bunu 0-100% arası çevir
-            const percentage = ((position + 100) / 200) * 100;
-            movingPoint.style.left = percentage + '%';
-            
-            // Yumuşak geçiş için CSS transition
-            movingPoint.style.transition = 'left 0.2s ease-out';
-            
-            // Renk değişimi
-            if (position < -80) {
-                movingPoint.style.color = '#dc3545'; // Kırmızı
-            } else if (position > 80) {
-                movingPoint.style.color = '#0d6efd'; // Mavi
-            } else {
-                movingPoint.style.color = '#ffc107'; // Sarı
+            // Update timer status
+             const timerStatus = document.getElementById('timerStatus');
+             if(timerStatus){
+                timerStatus.innerHTML = state.isTimerRunning
+                    ? '<span class="badge bg-warning">⏰ Süre İşliyor!</span>'
+                    : '<span class="badge bg-secondary">⏸️ Süre Durdu</span>';
             }
-        }
-
-        // Pass Turn fonksiyonu
-        async function passTurn() {
-            const btn = document.getElementById('passTurnBtn');
-            const spinner = document.getElementById('loadingSpinner');
             
-            try {
-                // Butonu devre dışı bırak ve loading göster
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İşleniyor...';
-                spinner.classList.remove('d-none');
-                
-                const response = await fetch('/Game/PassTurn', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-                    },
-                    body: 'code=@Model.LobbyCode'
-                });
-                
-                const result = await response.json();
+            // Update validation buttons for referee
+            if (isReferee.toLowerCase() === 'true') {
+                const validateSolBtn = document.getElementById('validate-sol');
+                const validateSagBtn = document.getElementById('validate-sag');
+                if (validateSolBtn && validateSagBtn) {
+                    validateSolBtn.disabled = state.isTeam1VolunteerAnswerValidated;
+                    validateSolBtn.innerHTML = state.isTeam1VolunteerAnswerValidated ? '🔴 Kırmızı Takım Doğrulandı' : '🔴 Kırmızı Takım Doğrula';
                     
-                if (!result.success) {
-                    // On error, show message and re-enable button
-            
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="fas fa-arrow-right"></i> Cevapla';
+                    validateSagBtn.disabled = state.isTeam2VolunteerAnswerValidated;
+                    validateSagBtn.innerHTML = state.isTeam2VolunteerAnswerValidated ? '🔵 Mavi Takım Doğrulandı' : '🔵 Mavi Takım Doğrula';
                 }
-                // On success, do nothing. The SignalR "UpdateGame" event will handle the UI refresh.
-
-            } catch (error) {
-                console.error("Fetch hatası:", error);
+            }
                 
-                // Butonu tekrar aktif et
-                btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-arrow-right"></i> Cevapla';
-            } finally {
-                spinner.classList.add('d-none');
+            // If game/round is over, stop polling and reload ONCE to show the final screen.
+            if (!state.isGameActive && !roundOverReloaded) {
+                if (gameUpdateInterval) clearInterval(gameUpdateInterval);
+                sessionStorage.setItem('roundOverReloaded', 'true');
+                setTimeout(() => location.reload(), 1500);
             }
         }
 
-        function volunteerForTeam(team) {
-            fetch('/Game/VolunteerForTeam', {
+        // Action Functions
+        function validateAnswer(team) {
+            fetch('/Game/ValidateAnswer', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    code: '@Model.LobbyCode',
-                    team: team
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                    alert(data.message || 'Bir hata oluştu');
-                }
-            })
-            .catch(error => {
-                console.error('Gönüllü olma hatası:', error);
-                alert('Bir hata oluştu');
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': requestVerificationToken },
+                body: `code=${lobbyCode}&team=${team}`
+            }).catch(err => {
+                console.error(err);
+                alert("Doğrulama sırasında bir hata oluştu.");
             });
         }
 
-        // Sayfa yüklendiğinde pozisyonu ayarla
-        document.addEventListener('DOMContentLoaded', function() {
-            updateFusePosition(currentFusePosition);
-            
-            // Round başlangıç mesajını 5 saniye sonra otomatik gizle
-            const roundStartAlert = document.querySelector('.alert-info');
-            if (roundStartAlert) {
-                setTimeout(() => {
-                    roundStartAlert.classList.remove('show');
-                    setTimeout(() => {
-                        roundStartAlert.remove();
-                    }, 150);
-                }, 5000);
-            }
-        });
+        function passTurn() {
+            const btn = document.getElementById('passTurnBtn');
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İşleniyor...';
 
-        function copyLobbyCode() {
-            const lobbyCode = document.getElementById('lobbyCode');
-            const codeText = lobbyCode.textContent;
-            
-            // Modern Clipboard API kullan (destekleniyorsa)
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(codeText).then(() => {
-                    showCopyFeedback();
-                }).catch(() => {
-                    // Fallback to old method
-                    fallbackCopy();
-                });
-            } else {
-                // Fallback method for older browsers
-                fallbackCopy();
-            }
-        }
-        
-        function fallbackCopy() {
-            const lobbyCode = document.getElementById('lobbyCode');
-            const tempInput = document.createElement('input');
-            tempInput.value = lobbyCode.textContent;
-            tempInput.style.position = 'absolute';
-            tempInput.style.left = '-9999px';
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            tempInput.setSelectionRange(0, 99999); // For mobile devices
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-            showCopyFeedback();
-        }
-        
-        function showCopyFeedback() {
-            const lobbyCode = document.getElementById('lobbyCode');
-            const originalText = lobbyCode.textContent;
-            const originalClass = lobbyCode.className;
-            
-            // Visual feedback
-            lobbyCode.textContent = '✓ Kopyalandı!';
-            lobbyCode.className = 'text-success';
-            lobbyCode.style.fontWeight = 'bold';
-            
-            // 2 saniye sonra geri al
-            setTimeout(() => {
-                lobbyCode.textContent = originalText;
-                lobbyCode.className = originalClass;
-                lobbyCode.style.fontWeight = 'normal';
-            }, 2000);
+            fetch('/Game/PassTurn', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': requestVerificationToken },
+                body: `code=${lobbyCode}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) {
+                    location.reload();
+                }
+            }).catch(err => {
+                console.error(err);
+                alert("Bir ağ hatası oluştu.");
+                location.reload();
+            });
         }
 
         function resetGame() {
-            if (confirm('Oyunu sıfırlamak istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
+            if (confirm('Oyunu sıfırlayıp lobiye dönmek istediğinizden emin misiniz?')) {
                 fetch('/Game/ResetGame', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-                    },
-                    body: 'code=@Model.LobbyCode'
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': requestVerificationToken },
+                    body: `code=${lobbyCode}`
                 })
-                .then(response => response.json())
+                .then(res => res.json())
                 .then(data => {
-                    if (!data.success) {
-                        alert(data.message || 'Bir hata oluştu');
-                    } else {
-                        console.log("Oyun sıfırlandı ve lobiye dönüldü");
-                        window.location.href = data.redirectUrl;
-                    }
-                })
-                .catch(error => {
-                    console.error('Oyun sıfırlama hatası:', error);
-                    alert('Bir hata oluştu');
-                });
+                    if (!data.success) alert(data.message || 'Bir hata oluştu.');
+                }).catch(err => console.error(err));
             }
         }
 
-        function validateVolunteerAnswer(team) {
-            fetch('/Game/ValidateVolunteerAnswer', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-                },
-                body: `code=@Model.LobbyCode&team=${team}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (!data.success) {
-                     alert(data.message || 'Doğrulama sırasında bir hata oluştu.');
-                }
-            })
-            .catch(error => {
-                console.error('Doğrulama hatası:', error);
-                alert('Bir hata oluştu: ' + error);
+        // Initialization
+        connection.start()
+            .then(() => {
+                console.log("SignalR Connected to GameHub.");
+                connection.invoke("AddToGroup", lobbyCode);
+                if (!roundOverReloaded) {
+                    fetchAndUpdateUI();
+                    gameUpdateInterval = setInterval(fetchAndUpdateUI, 250);
+                    }
+                })
+            .catch(err => console.error("SignalR Connection Error: ", err));
+            
+        window.addEventListener('beforeunload', () => {
+            if (gameUpdateInterval) clearInterval(gameUpdateInterval);
+        });
+
+        function copyLobbyCode() {
+            navigator.clipboard.writeText(lobbyCode).then(() => {
+                const el = document.getElementById('lobbyCode');
+                const originalText = el.innerText;
+                el.innerText = 'Kopyalandı!';
+                setTimeout(() => { el.innerText = originalText; }, 2000);
             });
         }
     </script>

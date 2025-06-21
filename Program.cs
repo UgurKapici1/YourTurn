@@ -30,6 +30,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddAuthorization();
 
+// GameService'i DI konteynerine ekle
+builder.Services.AddScoped<GameService>();
+
 // Arka plan servisleri ekleniyor
 builder.Services.AddHostedService<PeerHostingService>();
 

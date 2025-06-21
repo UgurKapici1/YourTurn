@@ -48,6 +48,9 @@ namespace YourTurn.Web.Services
         // Eş ana bilgisayarları kontrol eder
         private async Task CheckPeerHostsAsync()
         {
+            using var scope = _serviceProvider.CreateScope();
+            var gameService = scope.ServiceProvider.GetRequiredService<GameService>();
+
             var peerHostedLobbies = LobbyStore.ActiveLobbies.Where(l => l.IsPeerHosted).ToList();
 
             foreach (var lobby in peerHostedLobbies)
@@ -55,7 +58,7 @@ namespace YourTurn.Web.Services
                 try
                 {
                     // Ana bilgisayarın hala çevrimiçi olup olmadığını kontrol et
-                    var isOnline = GameService.IsPeerHostOnline(lobby);
+                    var isOnline = await gameService.IsPeerHostOnlineAsync(lobby);
                     
                     if (!isOnline && lobby.IsHostOnline)
                     {

@@ -8,6 +8,13 @@ namespace YourTurn.Web.Hubs
     // Lobi ile ilgili gerçek zamanlı iletişimi yönetir
     public class LobbyHub : Hub
     {
+        private readonly GameService _gameService;
+
+        public LobbyHub(GameService gameService)
+        {
+            _gameService = gameService;
+        }
+
         // Bir istemciyi belirli bir lobi grubuna ekler
         public async Task AddToGroup(string lobbyCode)
         {
@@ -24,7 +31,7 @@ namespace YourTurn.Web.Hubs
         // Bir lobi için bir eş ana bilgisayar kaydeder
         public async Task RegisterPeerHost(string lobbyCode, string hostIP, int hostPort)
         {
-            var lobby = GameService.FindLobby(lobbyCode);
+            var lobby = _gameService.FindLobby(lobbyCode);
             if (lobby != null)
             {
                 lobby.HostConnectionId = Context.ConnectionId;
@@ -41,7 +48,7 @@ namespace YourTurn.Web.Hubs
         // Bağlantıyı canlı tutmak için eş ana bilgisayardan sinyal gönderir
         public async Task HostHeartbeat(string lobbyCode)
         {
-            var lobby = GameService.FindLobby(lobbyCode);
+            var lobby = _gameService.FindLobby(lobbyCode);
             if (lobby != null && lobby.IsPeerHosted)
             {
                 lobby.LastHostHeartbeat = DateTime.Now;
@@ -52,7 +59,7 @@ namespace YourTurn.Web.Hubs
         // Eş ana bilgisayar çevrimdışı olduğunda bildirir
         public async Task HostOffline(string lobbyCode)
         {
-            var lobby = GameService.FindLobby(lobbyCode);
+            var lobby = _gameService.FindLobby(lobbyCode);
             if (lobby != null && lobby.IsPeerHosted)
             {
                 lobby.IsHostOnline = false;

@@ -6,43 +6,43 @@ namespace YourTurn.Web.Models
     public class GameState
     {
         // Takım 1'in aktif oyuncusu
-        public string ActivePlayer1 { get; set; }
+        public string? ActivePlayer1 { get; set; }
         // Takım 2'nin aktif oyuncusu
-        public string ActivePlayer2 { get; set; }
+        public string? ActivePlayer2 { get; set; }
         // Sıranın kimde olduğunu belirtir
-        public string CurrentTurn { get; set; }
+        public string? CurrentTurn { get; set; }
         // Zamanlayıcı fitilinin pozisyonu (-100 ile 100 arasında)
         public double FusePosition { get; set; } = 0;
         // Oyunun başlama zamanı
-        public DateTime GameStartTime { get; set; }
+        public DateTime? GameStartTime { get; set; }
         // Son turun başlama zamanı
         public DateTime? LastTurnStartTime { get; set; }
         // Mevcut soru ve cevap
-        public QuestionAnswer CurrentQuestion { get; set; }
+        public Question? CurrentQuestion { get; set; }
         // Takım 1'in skoru
         public int Team1Score { get; set; }
         // Takım 2'nin skoru
         public int Team2Score { get; set; }
         // Oyunun aktif olup olmadığını belirtir
-        public bool IsGameActive { get; set; }
+        public bool IsGameActive { get; set; } = true;
         // Turun kazananı
-        public string Winner { get; set; }
+        public string? Winner { get; set; }
         // Son cevap verilme zamanı
         public DateTime? LastAnswerTime { get; set; }
         // Zamanlayıcının çalışıp çalışmadığını belirtir
-        public bool IsTimerRunning { get; set; } = false;
+        public bool IsTimerRunning { get; set; }
         // Zamanlayıcının hızı
-        public double TimerSpeed { get; set; } = 2.0;
+        public double TimerSpeed { get; set; } = 0.2;
         // Takım 1'in gönüllüsü
-        public string Team1Volunteer { get; set; }
+        public string? Team1Volunteer { get; set; }
         // Takım 2'nin gönüllüsü
-        public string Team2Volunteer { get; set; }
+        public string? Team2Volunteer { get; set; }
         // Gönüllülerin beklenip beklenmediğini belirtir
-        public bool IsWaitingForVolunteers { get; set; } = true;
+        public bool IsWaitingForVolunteers { get; set; }
         // Takım 1 gönüllüsünün cevabının doğrulanıp doğrulanmadığını belirtir
-        public bool IsTeam1VolunteerAnswerValidated { get; set; } = false;
+        public bool IsTeam1VolunteerAnswerValidated { get; set; }
         // Takım 2 gönüllüsünün cevabının doğrulanıp doğrulanmadığını belirtir
-        public bool IsTeam2VolunteerAnswerValidated { get; set; } = false;
+        public bool IsTeam2VolunteerAnswerValidated { get; set; }
     }
 }
 

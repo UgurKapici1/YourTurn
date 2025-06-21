@@ -19,6 +19,9 @@ namespace YourTurn.Web.Data
         // Oyun ile ilgili veritabanı tabloları
         public DbSet<PlayerStat> PlayerStats { get; set; }
         public DbSet<LobbyHistory> LobbyHistories { get; set; }
+        public DbSet<Category> Categories { get; set; }
+        public DbSet<Question> Questions { get; set; }
+        public DbSet<Answer> Answers { get; set; }
 
         // Model oluşturulurken veritabanı şemasını yapılandırır
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -94,6 +97,36 @@ namespace YourTurn.Web.Data
                 entity.Property(e => e.Winner).HasMaxLength(10);
                 entity.Property(e => e.FinalScore).HasMaxLength(20);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            });
+
+            // Category entity'si için yapılandırma
+            modelBuilder.Entity<Category>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+                entity.HasIndex(e => e.Name).IsUnique();
+            });
+
+            // Question entity'si için yapılandırma
+            modelBuilder.Entity<Question>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Text).IsRequired();
+                
+                entity.HasOne(q => q.Category)
+                    .WithMany(c => c.Questions)
+                    .HasForeignKey(q => q.CategoryId);
+            });
+
+            // Answer entity'si için yapılandırma
+            modelBuilder.Entity<Answer>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Text).IsRequired();
+
+                entity.HasOne(a => a.Question)
+                    .WithMany(q => q.Answers)
+                    .HasForeignKey(a => a.QuestionId);
             });
 
             // Varsayılan yönetici için başlangıç verisi

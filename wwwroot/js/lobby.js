@@ -52,15 +52,15 @@ document.addEventListener('DOMContentLoaded', () => {
             })
         })
         .then(response => {
-            if (!response.ok) throw new Error('Network response was not ok');
-            return response.json();
-        })
-        .then(data => {
-            if (!data.success) alert(data.message || 'Bir hata oluştu');
+            if (!response.ok) {
+                return response.json().then(err => { 
+                    throw new Error(err.message || 'Sunucu hatası');
+                });
+            }
         })
         .catch(error => {
             console.error('Gönüllü olma hatası:', error);
-            alert('Bir hata oluştu');
+            alert('Gönüllü olurken bir hata oluştu: ' + error.message);
         });
     }
 
@@ -77,15 +77,15 @@ document.addEventListener('DOMContentLoaded', () => {
             })
         })
         .then(response => {
-            if (!response.ok) throw new Error('Network response was not ok');
-            return response.json();
-        })
-        .then(data => {
-            if (!data.success) alert(data.message || 'Bir hata oluştu');
+            if (!response.ok) {
+                 return response.json().then(err => { 
+                    throw new Error(err.message || 'Sunucu hatası');
+                });
+            }
         })
         .catch(error => {
             console.error('Gönüllülükten çıkma hatası:', error);
-            alert('Bir hata oluştu');
+            alert('Gönüllülükten çıkarken bir hata oluştu: ' + error.message);
         });
     }
 

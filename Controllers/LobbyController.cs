@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using YourTurn.Web.Data;
 using YourTurn.Web.Hubs;
 using YourTurn.Web.Models;
 using YourTurn.Web.Services;
@@ -11,25 +13,29 @@ namespace YourTurn.Web.Controllers
     public class LobbyController : Controller
     {
         private readonly IHubContext<LobbyHub> _hubContext;
+        private readonly GameService _gameService;
+        private readonly YourTurnDbContext _context;
 
         // Gerekli servisleri enjekte eder
-        public LobbyController(IHubContext<LobbyHub> hubContext)
+        public LobbyController(IHubContext<LobbyHub> hubContext, GameService gameService, YourTurnDbContext context)
         {
             _hubContext = hubContext;
+            _gameService = gameService;
+            _context = context;
         }
 
         // Mevcut oyuncuyla yeni bir lobi oluşturur ve ana bilgisayar olarak ayarlar
         [HttpPost]
         public async Task<IActionResult> Create()
         {
-            string playerName = GameService.GeneratePlayerName(TempData["PlayerName"]?.ToString());
+            string playerName = _gameService.GeneratePlayerName(TempData["PlayerName"]?.ToString());
 
             var newLobby = new Lobby
             {
                 HostPlayerName = playerName
             };
 
-            newLobby.Players.Add(GameService.CreatePlayer(playerName));
+            newLobby.Players.Add(_gameService.CreatePlayer(playerName));
 
             // Automatically start peer hosting
             newLobby.IsPeerHosted = true;
@@ -51,9 +57,9 @@ namespace YourTurn.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> JoinAsync(string lobbyCode)
         {
-            string playerName = GameService.GeneratePlayerName(TempData["PlayerName"]?.ToString());
+            string playerName = _gameService.GeneratePlayerName(TempData["PlayerName"]?.ToString());
 
-            var lobby = GameService.FindLobbyIgnoreCase(lobbyCode);
+            var lobby = _gameService.FindLobbyIgnoreCase(lobbyCode);
             if (lobby == null)
             {
                 ViewBag.Error = "Lobi bulunamadı!";
@@ -62,7 +68,7 @@ namespace YourTurn.Web.Controllers
 
             if (!lobby.Players.Any(p => p.Name == playerName))
             {
-                lobby.Players.Add(GameService.CreatePlayer(playerName));
+                lobby.Players.Add(_gameService.CreatePlayer(playerName));
             }
             HttpContext.Session.SetString("PlayerName", playerName);
             await _hubContext.Clients.Group(lobbyCode).SendAsync("UpdateLobby");
@@ -72,9 +78,9 @@ namespace YourTurn.Web.Controllers
 
         // Belirli bir lobi için lobi odasını görüntüler
         [HttpGet]
-        public IActionResult LobbyRoom(string code)
+        public async Task<IActionResult> LobbyRoom(string code)
         {
-            var lobby = GameService.FindLobby(code);
+            var lobby = _gameService.FindLobby(code);
             if (lobby == null)
                 return NotFound("Lobby bulunamadı");
 
@@ -83,16 +89,22 @@ namespace YourTurn.Web.Controllers
                 return RedirectToAction("Game", "Game", new { code });
             }
 
+            var viewModel = new LobbyRoomViewModel
+            {
+                Lobby = lobby,
+                Categories = await _context.Categories.OrderBy(c => c.Name).ToListAsync()
+            };
+
             ViewBag.CurrentPlayerName = HttpContext.Session.GetString("PlayerName");
 
-            return View(lobby);
+            return View(viewModel);
         }
 
         // Bir lobi için eş ana bilgisayar bilgilerini alır
         [HttpGet]
         public IActionResult GetPeerHostInfo(string code)
         {
-            var lobby = GameService.FindLobby(code);
+            var lobby = _gameService.FindLobby(code);
             if (lobby == null)
                 return NotFound("Lobby bulunamadı");
 
@@ -115,7 +127,7 @@ namespace YourTurn.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> ChooseCategory(string code, string category)
         {
-            var lobby = GameService.FindLobby(code);
+            var lobby = _gameService.FindLobby(code);
             if (lobby == null || lobby.IsGameStarted)
                 return Forbid();
 
@@ -135,7 +147,7 @@ namespace YourTurn.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> ChooseTeam(string code, string playerName, string team)
         {
-            var lobby = GameService.FindLobby(code);
+            var lobby = _gameService.FindLobby(code);
             if (lobby == null || lobby.IsGameStarted)
                 return Forbid();
 
@@ -180,7 +192,7 @@ namespace YourTurn.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> LeaveTeam(string code, string playerName)
         {
-            var lobby = GameService.FindLobby(code);
+            var lobby = _gameService.FindLobby(code);
             if (lobby == null || lobby.IsGameStarted)
                 return NotFound();
 
@@ -204,7 +216,7 @@ namespace YourTurn.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Leave(string code)
         {
-            var lobby = GameService.FindLobby(code);
+            var lobby = _gameService.FindLobby(code);
             if (lobby == null) return RedirectToAction("Index", "Home");
 
             var currentPlayerName = HttpContext.Session.GetString("PlayerName");
@@ -250,152 +262,159 @@ namespace YourTurn.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> StartGame(string code)
         {
-            var lobby = GameService.FindLobby(code);
-            if (lobby == null) return NotFound();
+            var lobby = _gameService.FindLobby(code);
+            if (lobby == null)
+                return NotFound("Lobby not found.");
 
-            var (canStart, errorMessage) = GameService.ValidateGameStart(lobby);
+            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
+            if (lobby.HostPlayerName != currentPlayerName)
+            {
+                return Forbid("Only the host can start the game.");
+            }
+
+            var (canStart, errorMessage) = _gameService.ValidateGameStart(lobby);
             if (!canStart)
             {
                 TempData["Error"] = errorMessage;
                 return RedirectToAction("LobbyRoom", new { code });
             }
 
-            // Preserve volunteer information and initialize game state
-            var team1Volunteer = lobby.GameState.Team1Volunteer;
-            var team2Volunteer = lobby.GameState.Team2Volunteer;
-            
-            lobby.GameState = GameService.InitializeGameState(lobby.Category);
-            lobby.GameState.Team1Volunteer = team1Volunteer;
-            lobby.GameState.Team2Volunteer = team2Volunteer;
-            lobby.GameState.ActivePlayer1 = team1Volunteer;
-            lobby.GameState.ActivePlayer2 = team2Volunteer;
-            lobby.GameState.CurrentTurn = team1Volunteer;
-            lobby.GameState.IsWaitingForVolunteers = false;
-
             lobby.IsGameStarted = true;
+            lobby.GameState = await _gameService.InitializeNewRoundAsync(
+                lobby.Category,
+                0, 0,
+                lobby.GameState.Team1Volunteer,
+                lobby.GameState.Team2Volunteer);
+            
+            if (lobby.GameState == null)
+            {
+                 TempData["Error"] = "Oyun başlatılamadı. Seçilen kategori için soru bulunamadı.";
+                 lobby.IsGameStarted = false;
+                 return RedirectToAction("LobbyRoom", new { code });
+            }
 
-            await _hubContext.Clients.Group(code).SendAsync("GameStarted");
-
-            return RedirectToAction("Game", "Game", new { code });
+            await _hubContext.Clients.Group(code).SendAsync("GameStarted", code);
+            return Ok();
         }
 
         // Bir oyuncunun takımı için gönüllü olmasına izin verir
         [HttpPost]
         public async Task<IActionResult> VolunteerForTeam([FromBody] VolunteerRequest request)
         {
-            try
+            var lobby = _gameService.FindLobby(request.code);
+            if (lobby == null || lobby.IsGameStarted)
+                return NotFound();
+            
+            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
+            var player = lobby.Players.FirstOrDefault(p => p.Name == currentPlayerName);
+            if (player == null || player.Team != request.team)
             {
-                var lobby = GameService.FindLobby(request.code);
-                if (lobby == null)
-                    return Json(new { success = false, message = "Lobby bulunamadı" });
+                return Forbid("Bu takım için gönüllü olamazsınız.");
+            }
 
-                var currentPlayerName = HttpContext.Session.GetString("PlayerName");
-                var player = lobby.Players.FirstOrDefault(p => p.Name == currentPlayerName);
-                
-                if (player == null || player.Team != request.team)
-                    return Json(new { success = false, message = "Geçersiz oyuncu veya takım" });
+            if (lobby.GameState == null)
+            {
+                lobby.GameState = new GameState();
+            }
 
-                if (lobby.GameState == null)
-                {
-                    lobby.GameState = new GameState
-                    {
-                        IsWaitingForVolunteers = true
-                    };
-                }
-
-                if (request.team == "Sol")
+            if (request.team == "Sol")
+            {
+                if (string.IsNullOrEmpty(lobby.GameState.Team1Volunteer))
                 {
                     lobby.GameState.Team1Volunteer = currentPlayerName;
                 }
-                else if (request.team == "Sağ")
+                else
+                {
+                    return BadRequest("Bu takımın zaten bir gönüllüsü var.");
+                }
+            }
+            else if (request.team == "Sağ")
+            {
+                if (string.IsNullOrEmpty(lobby.GameState.Team2Volunteer))
                 {
                     lobby.GameState.Team2Volunteer = currentPlayerName;
                 }
-
-                await _hubContext.Clients.Group(request.code).SendAsync("UpdateLobby");
-
-                return Json(new { success = true });
+                else
+                {
+                    return BadRequest("Bu takımın zaten bir gönüllüsü var.");
+                }
             }
-            catch (Exception ex)
+            else
             {
-                return Json(new { success = false, message = ex.Message });
+                return BadRequest("Geçersiz takım.");
             }
+
+            await _hubContext.Clients.Group(request.code).SendAsync("UpdateLobby");
+            return Ok();
         }
 
         // Gönüllünün geri çekilmesine izin verir
         [HttpPost]
         public async Task<IActionResult> WithdrawVolunteer([FromBody] VolunteerRequest request)
         {
-            try
+            var lobby = _gameService.FindLobby(request.code);
+            if (lobby == null || lobby.IsGameStarted)
+                return NotFound();
+
+            if (lobby.GameState == null) return Ok();
+
+            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
+            if (request.team == "Sol" && lobby.GameState.Team1Volunteer == currentPlayerName)
             {
-                var lobby = GameService.FindLobby(request.code);
-                if (lobby == null)
-                    return Json(new { success = false, message = "Lobby bulunamadı" });
-
-                var currentPlayerName = HttpContext.Session.GetString("PlayerName");
-                
-                if (lobby.GameState == null || lobby.IsGameStarted)
-                    return Json(new { success = false, message = "Bu işlem şu anda yapılamaz" });
-
-                if (request.team == "Sol" && lobby.GameState.Team1Volunteer == currentPlayerName)
-                {
-                    lobby.GameState.Team1Volunteer = null;
-                }
-                else if (request.team == "Sağ" && lobby.GameState.Team2Volunteer == currentPlayerName)
-                {
-                    lobby.GameState.Team2Volunteer = null;
-                }
-                else
-                {
-                    return Json(new { success = false, message = "Bu takımda gönüllü değilsiniz" });
-                }
-
-                await _hubContext.Clients.Group(request.code).SendAsync("UpdateLobby");
-
-                return Json(new { success = true });
+                lobby.GameState.Team1Volunteer = null;
             }
-            catch (Exception ex)
+            else if (request.team == "Sağ" && lobby.GameState.Team2Volunteer == currentPlayerName)
             {
-                return Json(new { success = false, message = ex.Message });
+                lobby.GameState.Team2Volunteer = null;
             }
+            else
+            {
+                return Forbid("Bu takımdan gönüllülüğünüzü geri çekemezsiniz.");
+            }
+
+            await _hubContext.Clients.Group(request.code).SendAsync("UpdateLobby");
+            return Ok();
         }
 
         // Takımları rastgele dağıtır
         [HttpPost]
         public async Task<IActionResult> RandomizeTeams(string code)
         {
-            var lobby = GameService.FindLobby(code);
-            if (lobby == null)
-                return NotFound("Lobby bulunamadı");
-
+            var lobby = _gameService.FindLobby(code);
+            if (lobby == null || lobby.IsGameStarted)
+                return NotFound();
+            
             var currentPlayerName = HttpContext.Session.GetString("PlayerName");
             if (lobby.HostPlayerName != currentPlayerName)
-                return Forbid("Sadece host takımları rastgele dağıtabilir");
-
-            if (lobby.IsGameStarted)
-                return Forbid("Oyun başladıktan sonra takım değişikliği yapılamaz");
-
-            // Get players without teams
-            var unassignedPlayers = lobby.Players.Where(p => string.IsNullOrEmpty(p.Team)).ToList();
-            
-            if (unassignedPlayers.Count < 2)
             {
-                TempData["Error"] = "En az 2 oyuncu olması gerekiyor!";
+                return Forbid("Sadece ev sahibi takımları karıştırabilir.");
+            }
+
+            var playersToAssign = lobby.Players.Where(p => string.IsNullOrEmpty(p.Team) && p.Name != lobby.RefereeName).ToList();
+            if (playersToAssign.Count == 0)
                 return RedirectToAction("LobbyRoom", new { code });
-            }
 
-            // Randomly assign players to teams
             var random = new Random();
-            var shuffledPlayers = unassignedPlayers.OrderBy(x => random.Next()).ToList();
-            
-            for (int i = 0; i < shuffledPlayers.Count; i++)
+            playersToAssign = playersToAssign.OrderBy(p => random.Next()).ToList();
+
+            var team1Count = lobby.Players.Count(p => p.Team == "Sol");
+            var team2Count = lobby.Players.Count(p => p.Team == "Sağ");
+
+            foreach (var player in playersToAssign)
             {
-                shuffledPlayers[i].Team = (i % 2 == 0) ? "Sol" : "Sağ";
+                if (team1Count <= team2Count)
+                {
+                    player.Team = "Sol";
+                    team1Count++;
+                }
+                else
+                {
+                    player.Team = "Sağ";
+                    team2Count++;
+                }
             }
-
+            
             await _hubContext.Clients.Group(code).SendAsync("UpdateLobby");
-            TempData["Success"] = "Oyuncular rastgele takımlara dağıtıldı!";
-
             return RedirectToAction("LobbyRoom", new { code });
         }
 
@@ -403,26 +422,28 @@ namespace YourTurn.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> ResetTeams(string code)
         {
-            var lobby = GameService.FindLobby(code);
-            if (lobby == null)
-                return NotFound("Lobby bulunamadı");
+            var lobby = _gameService.FindLobby(code);
+            if (lobby == null || lobby.IsGameStarted)
+                return NotFound();
 
             var currentPlayerName = HttpContext.Session.GetString("PlayerName");
             if (lobby.HostPlayerName != currentPlayerName)
-                return Forbid("Sadece host takımları sıfırlayabilir");
+            {
+                return Forbid("Sadece ev sahibi takımları sıfırlayabilir.");
+            }
 
-            if (lobby.IsGameStarted)
-                return Forbid("Oyun başladıktan sonra takım değişikliği yapılamaz");
-
-            // Reset all team assignments
             foreach (var player in lobby.Players)
             {
                 player.Team = "";
             }
+            
+            if (lobby.GameState != null)
+            {
+                lobby.GameState.Team1Volunteer = null;
+                lobby.GameState.Team2Volunteer = null;
+            }
 
             await _hubContext.Clients.Group(code).SendAsync("UpdateLobby");
-            TempData["Success"] = "Tüm takım atamaları sıfırlandı!";
-
             return RedirectToAction("LobbyRoom", new { code });
         }
 
@@ -430,41 +451,28 @@ namespace YourTurn.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> BecomeReferee(string code)
         {
-            var lobby = GameService.FindLobby(code);
+            var lobby = _gameService.FindLobby(code);
             if (lobby == null || lobby.IsGameStarted)
-                return Forbid();
+                return NotFound();
 
             var currentPlayerName = HttpContext.Session.GetString("PlayerName");
-            // Gönüllüyse gönüllülükten çıkar
-            if (lobby.GameState != null)
-            {
-                if (lobby.GameState.Team1Volunteer == currentPlayerName)
-                    lobby.GameState.Team1Volunteer = null;
-                if (lobby.GameState.Team2Volunteer == currentPlayerName)
-                    lobby.GameState.Team2Volunteer = null;
-            }
-            if (string.IsNullOrEmpty(lobby.RefereeName))
-            {
-                lobby.RefereeName = currentPlayerName;
 
-                // Oyuncuyu mevcut takımından çıkar
-                var player = lobby.Players.FirstOrDefault(p => p.Name == currentPlayerName);
-                if (player != null)
-                {
-                    player.Team = "";
-                }
-
-                await _hubContext.Clients.Group(code).SendAsync("UpdateLobby");
-                TempData["Success"] = "Artık hakemsiniz! Tarafsızlığınız için takımınızdan ayrıldınız.";
-            }
-            else if (lobby.RefereeName == currentPlayerName)
-            {
-                TempData["Error"] = "Zaten hakemsiniz.";
-            }
-            else
+            if (!string.IsNullOrEmpty(lobby.RefereeName))
             {
                 TempData["Error"] = "Bu lobide zaten bir hakem var.";
+                return RedirectToAction("LobbyRoom", new { code });
             }
+
+            var player = lobby.Players.FirstOrDefault(p => p.Name == currentPlayerName);
+            if (player != null && !string.IsNullOrEmpty(player.Team))
+            {
+                TempData["Error"] = "Hakem olmak için önce takımınızdan ayrılmalısınız.";
+                return RedirectToAction("LobbyRoom", new { code });
+            }
+
+            lobby.RefereeName = currentPlayerName;
+
+            await _hubContext.Clients.Group(code).SendAsync("UpdateLobby");
             return RedirectToAction("LobbyRoom", new { code });
         }
 
@@ -472,21 +480,19 @@ namespace YourTurn.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> LeaveReferee(string code)
         {
-            var lobby = GameService.FindLobby(code);
+            var lobby = _gameService.FindLobby(code);
             if (lobby == null || lobby.IsGameStarted)
-                return Forbid();
-
+                return NotFound();
+            
             var currentPlayerName = HttpContext.Session.GetString("PlayerName");
-            if (lobby.RefereeName == currentPlayerName)
+            if (lobby.RefereeName != currentPlayerName)
             {
-                lobby.RefereeName = null;
-                await _hubContext.Clients.Group(code).SendAsync("UpdateLobby");
-                TempData["Success"] = "Hakemlikten ayrıldınız.";
+                return Forbid("Sadece mevcut hakem bu rolden ayrılabilir.");
             }
-            else
-            {
-                TempData["Error"] = "Hakem değilsiniz.";
-            }
+
+            lobby.RefereeName = null;
+
+            await _hubContext.Clients.Group(code).SendAsync("UpdateLobby");
             return RedirectToAction("LobbyRoom", new { code });
         }
 
@@ -495,6 +501,12 @@ namespace YourTurn.Web.Controllers
         {
             public string code { get; set; }
             public string team { get; set; }
+        }
+        
+        public class LobbyRoomViewModel
+        {
+            public Lobby Lobby { get; set; }
+            public List<Category> Categories { get; set; } = new List<Category>();
         }
     }
 }

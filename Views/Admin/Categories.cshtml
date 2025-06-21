@@ -1,0 +1,541 @@
+@model YourTurn.Web.Controllers.AdminCategoriesViewModel
+@{
+    ViewData["Title"] = "Kategoriler ve Sorular";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>@ViewData["Title"]</h2>
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal">
+            <i class="fas fa-plus me-2"></i>Yeni Kategori Ekle
+        </button>
+    </div>
+
+    @if (!Model.Categories.Any())
+    {
+        <div class="alert alert-info">
+            Henüz hiç kategori oluşturulmamış.
+        </div>
+    }
+    else
+    {
+        <div class="accordion" id="categoriesAccordion">
+            @foreach (var category in Model.Categories)
+            {
+                <div class="accordion-item">
+                    <h2 class="accordion-header" id="heading-@category.Id">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-@category.Id">
+                            @category.Name
+                        </button>
+                    </h2>
+                    <div id="collapse-@category.Id" class="accordion-collapse collapse" data-bs-parent="#categoriesAccordion">
+                        <div class="accordion-body">
+                            <div class="d-flex justify-content-end mb-3">
+                                <button class="btn btn-sm btn-outline-success me-2" data-bs-toggle="modal" data-bs-target="#addQuestionModal" data-category-id="@category.Id">
+                                    <i class="fas fa-plus me-1"></i> Soru Ekle
+                                </button>
+                                <button class="btn btn-sm btn-outline-warning me-2 edit-category-btn" data-bs-toggle="modal" data-bs-target="#editCategoryModal" data-category-id="@category.Id" data-category-name="@category.Name">
+                                    <i class="fas fa-edit me-1"></i> Kategoriyi Düzenle
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-category-btn" data-category-id="@category.Id">
+                                    <i class="fas fa-trash me-1"></i> Kategoriyi Sil
+                                </button>
+                            </div>
+
+                            @if (!category.Questions.Any())
+                            {
+                                <p class="text-muted">Bu kategoride hiç soru yok.</p>
+                            }
+                            else
+                            {
+                                <h5>Sorular</h5>
+                                <ul class="list-group">
+                                    @foreach (var question in category.Questions)
+                                    {
+                                        <li class="list-group-item">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                @question.Text
+                                                <div>
+                                                    <button class="btn btn-sm btn-outline-success me-2" data-bs-toggle="modal" data-bs-target="#addAnswerModal" data-question-id="@question.Id">Cevap Ekle</button>
+                                                    <button class="btn btn-sm btn-outline-warning me-2 edit-question-btn" data-bs-toggle="modal" data-bs-target="#editQuestionModal" data-question-id="@question.Id" data-question-text="@question.Text">Düzenle</button>
+                                                    <button class="btn btn-sm btn-outline-danger delete-question-btn" data-question-id="@question.Id">Sil</button>
+                                                </div>
+                                            </div>
+                                            <ul class="list-group mt-2">
+                                                @foreach (var answer in question.Answers)
+                                                {
+                                                    <li class="list-group-item @(answer.IsCorrect ? "list-group-item-success" : "") d-flex justify-content-between align-items-center">
+                                                        @answer.Text
+                                                        <div>
+                                                            <button class="btn btn-sm btn-outline-warning me-1 edit-answer-btn" data-bs-toggle="modal" data-bs-target="#editAnswerModal" data-answer-id="@answer.Id" data-answer-text="@answer.Text" data-answer-iscorrect="@answer.IsCorrect.ToString().ToLower()">
+                                                                <i class="fas fa-edit"></i>
+                                                            </button>
+                                                            <button class="btn btn-sm btn-outline-danger delete-answer-btn" data-answer-id="@answer.Id">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    </li>
+                                                }
+                                            </ul>
+                                        </li>
+                                    }
+                                </ul>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<!-- Add Category Modal -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Yeni Kategori Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addCategoryForm">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <label for="categoryName" class="form-label">Kategori Adı</label>
+                        <input type="text" class="form-control" id="categoryName" placeholder="Kategori adı girin">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="saveCategoryBtn">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Question Modal -->
+<div class="modal fade" id="addQuestionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Yeni Soru Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addQuestionForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="categoryIdForNewQuestion" name="CategoryId" />
+                    <div class="mb-3">
+                        <label for="questionText" class="form-label">Soru Metni</label>
+                        <textarea class="form-control" id="questionText" name="Text" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="saveQuestionBtn">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Answer Modal -->
+<div class="modal fade" id="addAnswerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Yeni Cevap Ekle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addAnswerForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="questionIdForNewAnswer" name="QuestionId" />
+                    <div class="mb-3">
+                        <label for="answerText" class="form-label">Cevap Metni</label>
+                        <input type="text" class="form-control" id="answerText" name="Text">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="isCorrect" name="IsCorrect" value="true">
+                        <label class="form-check-label" for="isCorrect">Doğru Cevap</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="saveAnswerBtn">Kaydet</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Category Modal -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Kategoriyi Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editCategoryForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="editCategoryId" name="Id" />
+                    <div class="mb-3">
+                        <label for="editCategoryName" class="form-label">Kategori Adı</label>
+                        <input type="text" class="form-control" id="editCategoryName" name="Name">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="updateCategoryBtn">Güncelle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Question Modal -->
+<div class="modal fade" id="editQuestionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Soruyu Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editQuestionForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="editQuestionId" name="Id" />
+                    <div class="mb-3">
+                        <label for="editQuestionText" class="form-label">Soru Metni</label>
+                        <textarea class="form-control" id="editQuestionText" name="Text" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="updateQuestionBtn">Güncelle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Answer Modal -->
+<div class="modal fade" id="editAnswerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Cevabı Düzenle</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editAnswerForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="editAnswerId" name="Id" />
+                    <div class="mb-3">
+                        <label for="editAnswerText" class="form-label">Cevap Metni</label>
+                        <input type="text" class="form-control" id="editAnswerText" name="Text">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="editIsCorrect" name="IsCorrect" value="true">
+                        <label class="form-check-label" for="editIsCorrect">Doğru Cevap</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+                <button type="button" class="btn btn-primary" id="updateAnswerBtn">Güncelle</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Add Category
+            document.getElementById('saveCategoryBtn').addEventListener('click', function () {
+                const form = document.getElementById('addCategoryForm');
+                const formData = new FormData(form);
+                formData.append('Name', document.getElementById('categoryName').value);
+
+                fetch('/admin/categories/add', {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Kategori eklenirken bir hata oluştu: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Bir hata oluştu.');
+                });
+            });
+
+            // Add Question
+            const addQuestionModal = document.getElementById('addQuestionModal');
+            addQuestionModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const categoryId = button.getAttribute('data-category-id');
+                const categoryIdInput = addQuestionModal.querySelector('#categoryIdForNewQuestion');
+                categoryIdInput.value = categoryId;
+            });
+
+            document.getElementById('saveQuestionBtn').addEventListener('click', function () {
+                const form = document.getElementById('addQuestionForm');
+                const formData = new FormData(form);
+                
+                // Explicitly append form fields to ensure they are captured
+                formData.set('Text', form.querySelector('#questionText').value);
+                formData.set('CategoryId', form.querySelector('#categoryIdForNewQuestion').value);
+
+                fetch('/admin/questions/add', {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Soru eklenirken bir hata oluştu: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Bir hata oluştu.');
+                });
+            });
+
+            // Add Answer
+            const addAnswerModal = document.getElementById('addAnswerModal');
+            addAnswerModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const questionId = button.getAttribute('data-question-id');
+                const questionIdInput = addAnswerModal.querySelector('#questionIdForNewAnswer');
+                questionIdInput.value = questionId;
+            });
+
+            document.getElementById('saveAnswerBtn').addEventListener('click', function () {
+                const form = document.getElementById('addAnswerForm');
+                const formData = new FormData(form);
+
+                // Handle checkbox value
+                if (!formData.has('IsCorrect')) {
+                    formData.append('IsCorrect', 'false');
+                }
+
+                fetch('/admin/answers/add', {
+                    method: 'POST',
+                    body: formData,
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Cevap eklenirken bir hata oluştu: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Bir hata oluştu.');
+                });
+            });
+
+            // Delete Category
+            document.querySelectorAll('.delete-category-btn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const categoryId = this.getAttribute('data-category-id');
+                    if (confirm('Bu kategoriyi silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.')) {
+                        fetch(`/admin/categories/delete/${categoryId}`, {
+                            method: 'POST',
+                            headers: {
+                                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert('Kategori silinirken bir hata oluştu: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Bir hata oluştu.');
+                        });
+                    }
+                });
+            });
+
+            // Delete Question
+            document.querySelectorAll('.delete-question-btn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const questionId = this.getAttribute('data-question-id');
+                    if (confirm('Bu soruyu silmek istediğinizden emin misiniz?')) {
+                        fetch(`/admin/questions/delete/${questionId}`, {
+                            method: 'POST',
+                            headers: {
+                                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert('Soru silinirken bir hata oluştu: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Bir hata oluştu.');
+                        });
+                    }
+                });
+            });
+
+            // Delete Answer
+            document.querySelectorAll('.delete-answer-btn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const answerId = this.getAttribute('data-answer-id');
+                    if (confirm('Bu cevabı silmek istediğinizden emin misiniz?')) {
+                        fetch(`/admin/answers/delete/${answerId}`, {
+                            method: 'POST',
+                            headers: {
+                                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert('Cevap silinirken bir hata oluştu: ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Bir hata oluştu.');
+                        });
+                    }
+                });
+            });
+
+            // Edit Category
+            const editCategoryModal = document.getElementById('editCategoryModal');
+            editCategoryModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const categoryId = button.getAttribute('data-category-id');
+                const categoryName = button.getAttribute('data-category-name');
+                
+                editCategoryModal.querySelector('#editCategoryId').value = categoryId;
+                editCategoryModal.querySelector('#editCategoryName').value = categoryName;
+            });
+
+            document.getElementById('updateCategoryBtn').addEventListener('click', function () {
+                const form = document.getElementById('editCategoryForm');
+                const formData = new FormData(form);
+
+                fetch('/admin/categories/edit', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Kategori güncellenirken bir hata oluştu: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Bir hata oluştu.');
+                });
+            });
+
+            // Edit Question
+            const editQuestionModal = document.getElementById('editQuestionModal');
+            editQuestionModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const questionId = button.getAttribute('data-question-id');
+                const questionText = button.getAttribute('data-question-text');
+
+                editQuestionModal.querySelector('#editQuestionId').value = questionId;
+                editQuestionModal.querySelector('#editQuestionText').value = questionText;
+            });
+
+            document.getElementById('updateQuestionBtn').addEventListener('click', function () {
+                const form = document.getElementById('editQuestionForm');
+                const formData = new FormData(form);
+
+                fetch('/admin/questions/edit', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Soru güncellenirken bir hata oluştu: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Bir hata oluştu.');
+                });
+            });
+
+            // Edit Answer
+            const editAnswerModal = document.getElementById('editAnswerModal');
+            editAnswerModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const answerId = button.getAttribute('data-answer-id');
+                const answerText = button.getAttribute('data-answer-text');
+                const isCorrect = button.getAttribute('data-answer-iscorrect') === 'true';
+
+                editAnswerModal.querySelector('#editAnswerId').value = answerId;
+                editAnswerModal.querySelector('#editAnswerText').value = answerText;
+                editAnswerModal.querySelector('#editIsCorrect').checked = isCorrect;
+            });
+
+            document.getElementById('updateAnswerBtn').addEventListener('click', function () {
+                const form = document.getElementById('editAnswerForm');
+                const formData = new FormData(form);
+
+                if (!formData.has('IsCorrect')) {
+                    formData.append('IsCorrect', 'false');
+                }
+
+                fetch('/admin/answers/edit', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Cevap güncellenirken bir hata oluştu: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Bir hata oluştu.');
+                });
+            });
+        });
+    </script>
+} 
