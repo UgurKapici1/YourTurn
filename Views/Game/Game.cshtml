@@ -11,6 +11,8 @@
     var currentPlayerTeam = currentPlayer?.Team ?? "";
 }
 
+@Html.AntiForgeryToken()
+
 <div class="container-fluid mt-3">
     <!-- Round Başlangıç Mesajı -->
     @if (TempData["RoundStartMessage"] != null)
@@ -185,11 +187,12 @@
                     @if (Model.RefereeName == currentPlayerName && gameState?.CurrentQuestion != null)
                     {
                         <div class="alert alert-info mt-3"><strong>Cevap:</strong> @gameState.CurrentQuestion.Answer</div>
-                        @if (gameState.CurrentTurn == gameState.ActivePlayer1 && !gameState.IsTeam1VolunteerAnswerValidated)
+                        
+                        @if (gameState.IsGameActive && !gameState.IsTeam1VolunteerAnswerValidated)
                         {
                             <button class="btn btn-success mt-2" onclick="validateVolunteerAnswer('Sol')">🔴 Sol Gönüllüyü Doğrula</button>
                         }
-                        else if (gameState.CurrentTurn == gameState.ActivePlayer2 && !gameState.IsTeam2VolunteerAnswerValidated)
+                        @if (gameState.IsGameActive && !gameState.IsTeam2VolunteerAnswerValidated)
                         {
                             <button class="btn btn-primary mt-2" onclick="validateVolunteerAnswer('Sağ')">🔵 Sağ Gönüllüyü Doğrula</button>
                         }
@@ -422,7 +425,12 @@
         }).catch(err => console.error("SignalR bağlantı hatası:", err));
 
         connection.on("UpdateGame", function () {
-            console.log("Oyun güncellendi");
+            console.log("Game state updated from server, refreshing UI.");
+            fetchGameStateAndUpdateUI();
+        });
+
+        connection.on("NewRoundStarted", function () {
+            console.log("New round is starting, reloading the page.");
             location.reload();
         });
 
@@ -440,7 +448,27 @@
             }
         });
 
+        async function fetchGameStateAndUpdateUI() {
+            try {
+                const response = await fetch(`/Game/GetGameState?code=@Model.LobbyCode`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    updateGameUI(result);
+                } else {
+                    // If game state fails, it might be over. Redirect to lobby.
+                    console.log("Could not fetch game state, redirecting to lobby.");
+                    window.location.href = `/Lobby/LobbyRoom?code=@Model.LobbyCode`;
+                }
+            } catch (error) {
+                console.error("Error fetching game state:", error);
+            }
+        }
+
         function startGameUpdates() {
+            // Periyodik güncelleme devam edebilir, ancak anlık güncellemeler için fetchGameStateAndUpdateUI kullanılacak
+            if (gameUpdateInterval) clearInterval(gameUpdateInterval); // Mevcut intervali temizle
+            
             // Her 250ms'de bir oyun durumunu güncelle
             gameUpdateInterval = setInterval(async () => {
                 try {
@@ -549,23 +577,21 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
                     },
                     body: 'code=@Model.LobbyCode'
                 });
                 
                 const result = await response.json();
-                
-                if (result.success) {
-                    console.log("Sıra başarıyla geçildi ve süre başlatıldı");
-                    // SignalR ile güncelleme gelecek, sayfa yenilenecek
-                } else {
-                    console.error("Sıra geçirme hatası:", result.message);
                     
-                    
-                    // Butonu tekrar aktif et
+                if (!result.success) {
+                    // On error, show message and re-enable button
+            
                     btn.disabled = false;
                     btn.innerHTML = '<i class="fas fa-arrow-right"></i> Cevapla';
                 }
+                // On success, do nothing. The SignalR "UpdateGame" event will handle the UI refresh.
+
             } catch (error) {
                 console.error("Fetch hatası:", error);
                 
@@ -672,6 +698,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
                     },
                     body: 'code=@Model.LobbyCode'
                 })
@@ -696,12 +723,18 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
                 },
                 body: `code=@Model.LobbyCode&team=${team}`
             })
             .then(response => response.json())
-    
+            .then(data => {
+                if (!data.success) {
+                     alert(data.message || 'Doğrulama sırasında bir hata oluştu.');
+                }
+            })
             .catch(error => {
+                console.error('Doğrulama hatası:', error);
                 alert('Bir hata oluştu: ' + error);
             });
         }

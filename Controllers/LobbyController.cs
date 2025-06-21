@@ -96,11 +96,15 @@ namespace YourTurn.Web.Controllers
             if (lobby == null)
                 return NotFound("Lobby bulunamadı");
 
-            if (!lobby.IsPeerHosted || !lobby.IsHostOnline)
-                return NotFound("Peer host bulunamadı");
+            if (!lobby.IsPeerHosted) // Sadece IsPeerHosted kontrolü yeterli olabilir
+                return NotFound("Bu lobi P2P barındırma için ayarlanmamış.");
+
+            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
 
             return Json(new
             {
+                hostName = lobby.HostPlayerName,
+                isHost = lobby.HostPlayerName == currentPlayerName,
                 hostIP = lobby.HostIPAddress,
                 hostPort = lobby.HostPort,
                 isOnline = lobby.IsHostOnline
@@ -135,6 +139,19 @@ namespace YourTurn.Web.Controllers
             if (lobby == null || lobby.IsGameStarted)
                 return Forbid();
 
+            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
+            if (currentPlayerName != playerName)
+            {
+                return Forbid("Başka bir oyuncu adına işlem yapamazsınız.");
+            }
+
+            // Hakemin takıma katılmasını engelle
+            if (lobby.RefereeName == playerName)
+            {
+                TempData["Error"] = "Hakemler bir takıma katılamaz. Takıma katılmak için hakemlikten ayrılmalısınız.";
+                return RedirectToAction("LobbyRoom", new { code });
+            }
+
             var player = lobby.Players.FirstOrDefault(p => p.Name == playerName);
             if (player != null)
             {
@@ -166,6 +183,12 @@ namespace YourTurn.Web.Controllers
             var lobby = GameService.FindLobby(code);
             if (lobby == null || lobby.IsGameStarted)
                 return NotFound();
+
+            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
+            if (currentPlayerName != playerName)
+            {
+                return Forbid("Başka bir oyuncu adına işlem yapamazsınız.");
+            }
 
             var player = lobby.Players.FirstOrDefault(p => p.Name == playerName);
             if (player != null)
@@ -423,8 +446,16 @@ namespace YourTurn.Web.Controllers
             if (string.IsNullOrEmpty(lobby.RefereeName))
             {
                 lobby.RefereeName = currentPlayerName;
+
+                // Oyuncuyu mevcut takımından çıkar
+                var player = lobby.Players.FirstOrDefault(p => p.Name == currentPlayerName);
+                if (player != null)
+                {
+                    player.Team = "";
+                }
+
                 await _hubContext.Clients.Group(code).SendAsync("UpdateLobby");
-                TempData["Success"] = "Artık hakemsiniz!";
+                TempData["Success"] = "Artık hakemsiniz! Tarafsızlığınız için takımınızdan ayrıldınız.";
             }
             else if (lobby.RefereeName == currentPlayerName)
             {

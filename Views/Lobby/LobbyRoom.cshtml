@@ -12,6 +12,12 @@
 
 @Html.AntiForgeryToken()
 
+<div id="lobby-data" 
+    data-lobby-code="@Model.LobbyCode" 
+    data-current-player-name="@currentPlayerName"
+    data-host-player-name="@Model.HostPlayerName">
+</div>
+
 <div class="d-flex justify-content-between align-items-center mb-3">
     <form method="post" action="/Lobby/Leave" class="d-inline">
         <input type="hidden" name="code" value="@Model.LobbyCode" />
@@ -193,41 +199,44 @@ else if (Model.RefereeName == currentPlayerName)
                 <h4 class="mb-0">🔴 Kırmızı Takım</h4>
             </div>
             <div class="card-body d-flex flex-column justify-content-between" style="min-height: 350px;">
-                <!-- Üstte Gönüllü Ol/Gönüllülükten Çık butonu -->
-                <div class="mb-3 text-center">
-                    @if (currentPlayerTeam == "Sol")
-                    {
-                        if (team1Volunteer != currentPlayerName)
-                        {
-                            <button class="btn btn-danger" onclick="volunteerForTeam('Sol')">
-                                <i class="fas fa-hand-paper"></i> Gönüllü Ol
-                            </button>
-                        }
-                        else
-                        {
-                            <button class="btn btn-warning" onclick="withdrawVolunteer('Sol')">
-                                <i class="fas fa-times"></i> Gönüllülükten Çık
-                            </button>
-                        }
-                    }
-                </div>
                 <!-- Takım oyuncuları listesi -->
                 <ul class="list-group mb-3">
                     @foreach (var player in Model.Players.Where(p => p.Team == "Sol"))
                     {
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            @player.Name
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>@player.Name</span>
+                                <div>
+                                    @if (player.Name == currentPlayerName)
+                                    {
+                                        <span class="badge bg-success">Sen</span>
+                                    }
+                                    @if (Model.GameState?.Team1Volunteer == player.Name)
+                                    {
+                                        <span class="badge bg-danger">Gönüllü</span>
+                                    }
+                                    @if (Model.RefereeName == player.Name)
+                                    {
+                                        <span class="badge bg-info"><i class="fas fa-gavel"></i> Hakem</span>
+                                    }
+                                </div>
+                            </div>
                             @if (player.Name == currentPlayerName)
                             {
-                                <span class="badge bg-success">Sen</span>
-                            }
-                            @if (Model.GameState?.Team1Volunteer == player.Name)
-                            {
-                                <span class="badge bg-danger">Gönüllü</span>
-                            }
-                            @if (Model.RefereeName == player.Name)
-                            {
-                                <span class="badge bg-info"><i class="fas fa-gavel"></i> Hakem</span>
+                                <div class="mt-2 text-center">
+                                    @if (team1Volunteer != currentPlayerName)
+                                    {
+                                        <button class="btn btn-sm btn-danger" onclick="volunteerForTeam('Sol')">
+                                            <i class="fas fa-hand-paper"></i> Gönüllü Ol
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-warning" onclick="withdrawVolunteer('Sol')">
+                                            <i class="fas fa-times"></i> Gönüllülükten Çık
+                                        </button>
+                                    }
+                                </div>
                             }
                         </li>
                     }
@@ -265,41 +274,44 @@ else if (Model.RefereeName == currentPlayerName)
                 <h4 class="mb-0">🔵 Mavi Takım</h4>
             </div>
             <div class="card-body d-flex flex-column justify-content-between" style="min-height: 350px;">
-                <!-- Üstte Gönüllü Ol/Gönüllülükten Çık butonu -->
-                <div class="mb-3 text-center">
-                    @if (currentPlayerTeam == "Sağ")
-                    {
-                        if (team2Volunteer != currentPlayerName)
-                        {
-                            <button class="btn btn-primary" onclick="volunteerForTeam('Sağ')">
-                                <i class="fas fa-hand-paper"></i> Gönüllü Ol
-                            </button>
-                        }
-                        else
-                        {
-                            <button class="btn btn-warning" onclick="withdrawVolunteer('Sağ')">
-                                <i class="fas fa-times"></i> Gönüllülükten Çık
-                            </button>
-                        }
-                    }
-                </div>
                 <!-- Takım oyuncuları listesi -->
                 <ul class="list-group mb-3">
                     @foreach (var player in Model.Players.Where(p => p.Team == "Sağ"))
                     {
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            @player.Name
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>@player.Name</span>
+                                <div>
+                                    @if (player.Name == currentPlayerName)
+                                    {
+                                        <span class="badge bg-success">Sen</span>
+                                    }
+                                    @if (Model.GameState?.Team2Volunteer == player.Name)
+                                    {
+                                        <span class="badge bg-primary">Gönüllü</span>
+                                    }
+                                    @if (Model.RefereeName == player.Name)
+                                    {
+                                        <span class="badge bg-info"><i class="fas fa-gavel"></i> Hakem</span>
+                                    }
+                                </div>
+                            </div>
                             @if (player.Name == currentPlayerName)
                             {
-                                <span class="badge bg-success">Sen</span>
-                            }
-                            @if (Model.GameState?.Team2Volunteer == player.Name)
-                            {
-                                <span class="badge bg-primary">Gönüllü</span>
-                            }
-                            @if (Model.RefereeName == player.Name)
-                            {
-                                <span class="badge bg-info"><i class="fas fa-gavel"></i> Hakem</span>
+                                <div class="mt-2 text-center">
+                                    @if (team2Volunteer != currentPlayerName)
+                                    {
+                                        <button class="btn btn-sm btn-primary" onclick="volunteerForTeam('Sağ')">
+                                            <i class="fas fa-hand-paper"></i> Gönüllü Ol
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-warning" onclick="withdrawVolunteer('Sağ')">
+                                            <i class="fas fa-times"></i> Gönüllülükten Çık
+                                        </button>
+                                    }
+                                </div>
                             }
                         </li>
                     }
@@ -392,180 +404,8 @@ else if (Model.RefereeName == currentPlayerName)
     </div>
 }
 
-
-
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/7.0.5/signalr.min.js"></script>
     <script src="/js/peer-hosting.js"></script>
-    <script>
-        // Data attributes for peer hosting system
-        document.body.setAttribute('data-lobby-code', '@Model.LobbyCode');
-        document.body.setAttribute('data-player-name', '@currentPlayerName');
-        
-        const connection = new signalR.HubConnectionBuilder()
-            .withUrl("/LobbyHub")
-            .build();
-
-        connection.start().then(() => {
-            connection.invoke("AddToGroup", "@Model.LobbyCode");
-            // Register player connection
-            connection.invoke("RegisterPlayer", "@currentPlayerName");
-        });
-
-        connection.on("UpdateLobby", function () {
-            location.reload();
-        });
-
-        connection.on("PeerHostRegistered", function (hostIP, hostPort) {
-            console.log(`Peer host registered: ${hostIP}:${hostPort}`);
-            updatePeerHostingUI(hostIP, hostPort, true);
-        });
-
-        connection.on("PeerHostOffline", function () {
-            console.log("Peer host went offline");
-            updatePeerHostingUI(null, null, false);
-        });
-
-        connection.on("LobbyClosed", function (message) {
-            console.log("Lobby closed:", message);
-            alert(message);
-            window.location.href = "/Home/JoinLobby";
-        });
-
-        function volunteerForTeam(team) {
-            fetch('/Lobby/VolunteerForTeam', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-                },
-                body: JSON.stringify({
-                    code: '@Model.LobbyCode',
-                    team: team
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (!data.success) {
-                    alert(data.message || 'Bir hata oluştu');
-                }
-            })
-            .catch(error => {
-                console.error('Gönüllü olma hatası:', error);
-                alert('Bir hata oluştu');
-            });
-        }
-
-        function withdrawVolunteer(team) {
-            fetch('/Lobby/WithdrawVolunteer', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-                },
-                body: JSON.stringify({
-                    code: '@Model.LobbyCode',
-                    team: team
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (!data.success) {
-                    alert(data.message || 'Bir hata oluştu');
-                }
-            })
-            .catch(error => {
-                console.error('Gönüllülükten çıkma hatası:', error);
-                alert('Bir hata oluştu');
-            });
-        }
-
-        function updatePeerHostingUI(hostIP, hostPort, isOnline) {
-            const peerHostingInfo = document.getElementById('peer-hosting-info');
-            if (peerHostingInfo) {
-                if (isOnline && hostIP && hostPort) {
-                    peerHostingInfo.innerHTML = `
-                        <div class="alert alert-success">
-                            <strong><i class="fas fa-server"></i> Peer Hosting Aktif</strong><br>
-                            Host: @Model.HostPlayerName<br>
-                            IP: ${hostIP}<br>
-                            Port: ${hostPort}
-                        </div>
-                    `;
-                } else {
-                    peerHostingInfo.innerHTML = `
-                        <div class="alert alert-warning">
-                            <strong><i class="fas fa-exclamation-triangle"></i> Peer Host Çevrimdışı</strong><br>
-                            Host bağlantısı kesildi. Oyun devam edemez.
-                        </div>
-                    `;
-                }
-            }
-        }
-
-        // Oyun başladığında tüm oyuncuları oyun sayfasına yönlendir
-        connection.on("GameStarted", function () {
-            window.location.href = "/Game/Game?code=@Model.LobbyCode";
-        });
-
-        function copyLobbyCode() {
-            const lobbyCode = document.getElementById('lobbyCode');
-            const codeText = lobbyCode.textContent;
-            
-            // Modern Clipboard API kullan (destekleniyorsa)
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(codeText).then(() => {
-                    showCopyFeedback();
-                }).catch(() => {
-                    // Fallback to old method
-                    fallbackCopy();
-                });
-            } else {
-                // Fallback method for older browsers
-                fallbackCopy();
-            }
-        }
-        
-        function fallbackCopy() {
-            const lobbyCode = document.getElementById('lobbyCode');
-            const tempInput = document.createElement('input');
-            tempInput.value = lobbyCode.textContent;
-            tempInput.style.position = 'absolute';
-            tempInput.style.left = '-9999px';
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            tempInput.setSelectionRange(0, 99999); // For mobile devices
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
-            showCopyFeedback();
-        }
-        
-        function showCopyFeedback() {
-            const lobbyCode = document.getElementById('lobbyCode');
-            const originalText = lobbyCode.textContent;
-            const originalClass = lobbyCode.className;
-            
-            // Visual feedback
-            lobbyCode.textContent = '✓ Kopyalandı!';
-            lobbyCode.className = 'text-success';
-            lobbyCode.style.fontWeight = 'bold';
-            
-            // 2 saniye sonra geri al
-            setTimeout(() => {
-                lobbyCode.textContent = originalText;
-                lobbyCode.className = originalClass;
-                lobbyCode.style.fontWeight = 'normal';
-            }, 2000);
-        }
-    </script>
+    <script src="~/js/lobby.js" defer></script>
 }

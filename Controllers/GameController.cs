@@ -239,7 +239,7 @@ namespace YourTurn.Web.Controllers
             var startingTeam = lobby.GameState.CurrentTurn == team1Volunteer ? "Sol" : "Sağ";
             TempData["RoundStartMessage"] = $"🎲 Rastgele seçim sonucu {startingTeam} takımı başlıyor!";
 
-            await _hubContext.Clients.Group(code).SendAsync("UpdateGame");
+            await _hubContext.Clients.Group(code).SendAsync("NewRoundStarted");
             
             return RedirectToAction("Game", new { code });
         }
@@ -344,7 +344,7 @@ namespace YourTurn.Web.Controllers
             var startingTeam = lobby.GameState.CurrentTurn == team1Volunteer ? "Sol" : "Sağ";
             TempData["RoundStartMessage"] = $"🎲 Rastgele seçim sonucu {startingTeam} takımı başlıyor!";
 
-            await _hubContext.Clients.Group(code).SendAsync("UpdateGame");
+            await _hubContext.Clients.Group(code).SendAsync("NewRoundStarted");
             
             return RedirectToAction("Game", new { code });
         }

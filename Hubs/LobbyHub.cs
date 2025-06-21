@@ -35,7 +35,6 @@ namespace YourTurn.Web.Hubs
                 lobby.IsHostOnline = true;
 
                 await Clients.Group(lobbyCode).SendAsync("PeerHostRegistered", hostIP, hostPort);
-                await Clients.Group(lobbyCode).SendAsync("UpdateLobby");
             }
         }
 
@@ -58,7 +57,6 @@ namespace YourTurn.Web.Hubs
             {
                 lobby.IsHostOnline = false;
                 await Clients.Group(lobbyCode).SendAsync("PeerHostOffline");
-                await Clients.Group(lobbyCode).SendAsync("UpdateLobby");
             }
         }
 
@@ -78,7 +76,6 @@ namespace YourTurn.Web.Hubs
                 Console.WriteLine($"Peer host disconnected from lobby: {peerHostLobby.LobbyCode}");
                 peerHostLobby.IsHostOnline = false;
                 await Clients.Group(peerHostLobby.LobbyCode).SendAsync("PeerHostOffline");
-                await Clients.Group(peerHostLobby.LobbyCode).SendAsync("UpdateLobby");
             }
 
             // Not: Bağlantılar kesildiğinde lobileri otomatik olarak kapatmıyoruz

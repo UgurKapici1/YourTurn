@@ -148,7 +148,9 @@ class PeerHostingSystem {
             const response = await fetch(`/Lobby/GetPeerHostInfo?code=${lobbyCode}`);
             if (response.ok) {
                 const data = await response.json();
-                return data.isHost === true;
+                this.hostIP = data.hostIP; // Store host IP and port
+                this.hostPort = data.hostPort;
+                return data.isHost; // Directly use the isHost flag from the server
             }
         } catch (error) {
             console.error("Failed to check host status:", error);
