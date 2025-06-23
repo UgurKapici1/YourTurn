@@ -46,21 +46,18 @@ class PeerHostingSystem {
     // Register SignalR event handlers
     registerEventHandlers() {
         this.connection.on("PeerHostRegistered", (hostIP, hostPort) => {
-            console.log(`Peer host registered: ${hostIP}:${hostPort}`);
             this.hostIP = hostIP;
             this.hostPort = hostPort;
             this.updateUIForPeerHosting();
         });
 
         this.connection.on("PeerHostOffline", () => {
-            console.log("Peer host went offline");
             this.hostIP = null;
             this.hostPort = null;
             this.updateUIForHostOffline();
         });
 
         this.connection.on("LobbyClosed", (message) => {
-            console.log("Lobby closed:", message);
             this.stopPeerHosting();
             alert(message);
             window.location.href = "/Home/JoinLobby";
@@ -87,8 +84,6 @@ class PeerHostingSystem {
             
             // Start local server for peer connections
             await this.startLocalServer(localIP, localPort);
-            
-            console.log(`Peer hosting started automatically on ${localIP}:${localPort}`);
         } catch (error) {
             console.error("Failed to start peer hosting:", error);
         }
@@ -106,8 +101,6 @@ class PeerHostingSystem {
             connection.close();
         });
         this.peerConnections.clear();
-        
-        console.log("Peer hosting stopped");
     }
 
     // Start heartbeat to keep host status alive

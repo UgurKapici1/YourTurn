@@ -10,7 +10,6 @@ namespace YourTurn.Web.Services
     public class GameService
     {
         private readonly YourTurnDbContext _context;
-        private const int WINNING_SCORE = 5;
         private const int HOST_TIMEOUT_SECONDS = 30; // Ana bilgisayarın sinyal gönderme zaman aşımı
 
         public GameService(YourTurnDbContext context)
@@ -60,7 +59,7 @@ namespace YourTurn.Web.Services
         }
 
         // Belirtilen kategoriden rastgele bir soru döndürür
-        public async Task<Question?> GetRandomQuestionAsync(string categoryName)
+        public async Task<Question?> GetRandomQuestionAsync(string categoryName, int? excludeQuestionId = null)
         {
             var category = await _context.Categories
                 .Include(c => c.Questions)
@@ -72,9 +71,33 @@ namespace YourTurn.Web.Services
                 return null;
             }
 
+            IEnumerable<Question> questions = category.Questions;
+            if (excludeQuestionId.HasValue)
+            {
+                questions = questions.Where(q => q.Id != excludeQuestionId.Value);
+            }
+
+            var questionsList = questions.ToList();
+            if (!questionsList.Any())
+                return null;
+
             var random = new Random();
-            int index = random.Next(category.Questions.Count);
-            return category.Questions[index];
+            int index = random.Next(questionsList.Count);
+            return questionsList[index];
+        }
+
+        // Dinamik olarak kazanma skorunu getirir
+        public int GetWinningScore()
+        {
+            var setting = _context.AdminSettings.FirstOrDefault(s => s.SettingKey == "WinningScore");
+            return setting != null && int.TryParse(setting.SettingValue, out var value) ? value : 5;
+        }
+
+        // Dinamik olarak timer hızını getirir
+        public double GetTimerSpeed()
+        {
+            var setting = _context.AdminSettings.FirstOrDefault(s => s.SettingKey == "TimerSpeed");
+            return setting != null && double.TryParse(setting.SettingValue, out var value) ? value : 0.2;
         }
 
         // Bir lobi için yeni bir oyun durumu başlatır
@@ -93,7 +116,7 @@ namespace YourTurn.Web.Services
                 Team2Score = 0,
                 IsGameActive = true,
                 IsTimerRunning = false,
-                TimerSpeed = 0.2,
+                TimerSpeed = GetTimerSpeed(),
                 IsWaitingForVolunteers = true
             };
         }
@@ -117,7 +140,7 @@ namespace YourTurn.Web.Services
                 Team2Score = team2Score,
                 IsGameActive = true,
                 IsTimerRunning = false,
-                TimerSpeed = 0.2,
+                TimerSpeed = GetTimerSpeed(),
                 IsWaitingForVolunteers = false,
                 Team1Volunteer = team1Volunteer,
                 Team2Volunteer = team2Volunteer,
@@ -130,15 +153,17 @@ namespace YourTurn.Web.Services
         // Bir takımın kazanma skoruna ulaşıp ulaşmadığını kontrol eder
         public bool HasWinningTeam(int team1Score, int team2Score)
         {
-            return team1Score >= WINNING_SCORE || team2Score >= WINNING_SCORE;
+            int winningScore = GetWinningScore();
+            return team1Score >= winningScore || team2Score >= winningScore;
         }
 
         // Kazanan takımın adını alır
         public string? GetWinningTeam(int team1Score, int team2Score)
         {
-            if (team1Score >= WINNING_SCORE)
+            int winningScore = GetWinningScore();
+            if (team1Score >= winningScore)
                 return "Sol";
-            if (team2Score >= WINNING_SCORE)
+            if (team2Score >= winningScore)
                 return "Sağ";
             return null;
         }

@@ -112,7 +112,7 @@ namespace YourTurn.Web.Controllers
 
             // Get active lobbies and players from in-memory store
             var activeLobbies = LobbyStore.GetActiveLobbies();
-            var activePlayers = LobbyStore.PlayerToConnections.Keys.ToList();
+            var activePlayers = LobbyStore.PlayerToConnections.Keys;
 
             var dashboardData = new AdminDashboardViewModel
             {
@@ -126,7 +126,7 @@ namespace YourTurn.Web.Controllers
                     .Take(10)
                     .ToListAsync(),
                 CurrentActiveLobbies = activeLobbies,
-                CurrentActivePlayers = activePlayers
+                CurrentActivePlayers = activePlayers.ToList()
             };
 
             return View(dashboardData);
@@ -143,7 +143,7 @@ namespace YourTurn.Web.Controllers
 
             // Get active lobbies and players from in-memory store
             var activeLobbies = LobbyStore.GetActiveLobbies();
-            var activePlayers = LobbyStore.PlayerToConnections.Keys.ToList();
+            var activePlayers = LobbyStore.PlayerToConnections.Keys;
 
             var dashboardData = new
             {
@@ -158,7 +158,7 @@ namespace YourTurn.Web.Controllers
                     category = l.Category,
                     createdAt = l.CreatedAt.ToString("dd.MM.yyyy HH:mm")
                 }).ToList(),
-                currentActivePlayers = activePlayers
+                currentActivePlayers = activePlayers.ToList()
             };
 
             return Json(dashboardData);
@@ -295,14 +295,14 @@ namespace YourTurn.Web.Controllers
             }
 
             // Get active players from in-memory store
-            var activePlayers = LobbyStore.PlayerToConnections.Keys.ToList();
+            var activePlayers = LobbyStore.PlayerToConnections.Keys;
             var dbPlayers = await _context.PlayerStats
                 .OrderByDescending(p => p.LastSeenAt ?? p.CreatedAt)
                 .ToListAsync();
 
             var viewModel = new AdminPlayersViewModel
             {
-                ActivePlayers = activePlayers,
+                ActivePlayers = activePlayers.ToList(),
                 DatabasePlayers = dbPlayers
             };
 

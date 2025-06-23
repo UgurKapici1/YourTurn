@@ -32,7 +32,7 @@ namespace YourTurn.Web.Models
         // Zamanlayıcının çalışıp çalışmadığını belirtir
         public bool IsTimerRunning { get; set; }
         // Zamanlayıcının hızı
-        public double TimerSpeed { get; set; } = 0.2;
+        public double TimerSpeed { get; set; }
         // Takım 1'in gönüllüsü
         public string? Team1Volunteer { get; set; }
         // Takım 2'nin gönüllüsü

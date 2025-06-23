@@ -1,13 +1,3 @@
-C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.csproj.AssemblyReference.cache
-C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\rpswa.dswa.cache.json
-C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.AssemblyInfoInputs.cache
-C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.AssemblyInfo.cs
-C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.csproj.CoreCompileInputs.cache
-C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.MvcApplicationPartsAssemblyInfo.cache
-C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.RazorAssemblyInfo.cache
-C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.RazorAssemblyInfo.cs
-C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.sourcelink.json
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\appsettings.Development.json
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\appsettings.json
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\YourTurn.Web.staticwebassets.runtime.json
@@ -92,6 +82,16 @@ C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\ru\Microsoft.CodeAnalysis.Workspace
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\tr\Microsoft.CodeAnalysis.Workspaces.resources.dll
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\zh-Hans\Microsoft.CodeAnalysis.Workspaces.resources.dll
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\zh-Hant\Microsoft.CodeAnalysis.Workspaces.resources.dll
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.csproj.AssemblyReference.cache
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\rpswa.dswa.cache.json
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.AssemblyInfoInputs.cache
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.AssemblyInfo.cs
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.csproj.CoreCompileInputs.cache
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.MvcApplicationPartsAssemblyInfo.cache
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.RazorAssemblyInfo.cache
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.RazorAssemblyInfo.cs
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.sourcelink.json
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\rjimswa.dswa.cache.json
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\rjsmrazor.dswa.cache.json
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\rjsmcshtml.dswa.cache.json
@@ -100,7 +100,7 @@ C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\scopedcss\bundle\YourTurn.Web.style
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\scopedcss\projectbundle\YourTurn.Web.bundle.scp.css
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\gwekk2o47z-b9sayid5wm.gz
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\w5thy4eul6-61n19gt1b8.gz
-C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\9z2kkmglh3-dzcoln7802.gz
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\g0kw02kwpb-kk3lfg7d2k.gz
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\thi8ylx7bd-xtxxf3hu2r.gz
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\0du6unk27e-bqjiyaj88i.gz
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\8azeawycao-c2jlpeoesf.gz
@@ -173,4 +173,4 @@ C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\refint\YourTurn.Web.dll
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.pdb
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.genruntimeconfig.cache
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\ref\YourTurn.Web.dll
-C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\g0kw02kwpb-kk3lfg7d2k.gz
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\9z2kkmglh3-t2j8k5vww7.gz

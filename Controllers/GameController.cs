@@ -99,7 +99,7 @@ namespace YourTurn.Web.Controllers
                 lobby.GameState.CurrentTurn = lobby.GameState.ActivePlayer1;
             }
 
-            var newQuestion = await _gameService.GetRandomQuestionAsync(lobby.Category);
+            var newQuestion = await _gameService.GetRandomQuestionAsync(lobby.Category, lobby.GameState.CurrentQuestion?.Id);
             if(newQuestion == null){
                 return Json(new { success = false, message = "Bu kategoride başka soru bulunamadı." });
             }
@@ -358,7 +358,6 @@ namespace YourTurn.Web.Controllers
                 lobby.Category = category;
             }
 
-            // Start new round with preserved scores
             var team1Volunteer = lobby.GameState.Team1Volunteer;
             var team2Volunteer = lobby.GameState.Team2Volunteer;
             
@@ -370,7 +369,6 @@ namespace YourTurn.Web.Controllers
                 team2Volunteer
             );
 
-            // Add a message about which team starts
             var startingTeam = lobby.GameState.CurrentTurn == team1Volunteer ? "Sol" : "Sağ";
             TempData["RoundStartMessage"] = $"🎲 Rastgele seçim sonucu {startingTeam} takımı başlıyor!";
 

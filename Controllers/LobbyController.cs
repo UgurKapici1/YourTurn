@@ -390,11 +390,8 @@ namespace YourTurn.Web.Controllers
                 return Forbid("Sadece ev sahibi takımları karıştırabilir.");
             }
 
-            var playersToAssign = lobby.Players.Where(p => string.IsNullOrEmpty(p.Team) && p.Name != lobby.RefereeName).ToList();
-            if (playersToAssign.Count == 0)
-                return RedirectToAction("LobbyRoom", new { code });
-
             var random = new Random();
+            var playersToAssign = lobby.Players.Where(p => string.IsNullOrEmpty(p.Team) && p.Name != lobby.RefereeName);
             playersToAssign = playersToAssign.OrderBy(p => random.Next()).ToList();
 
             var team1Count = lobby.Players.Count(p => p.Team == "Sol");

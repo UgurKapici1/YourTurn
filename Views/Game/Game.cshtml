@@ -2,7 +2,7 @@
 @model YourTurn.Web.Controllers.GameController.GameViewModel
 
 @{
-    ViewData["Title"] = "Oyun - " + Model.Lobby.LobbyCode;
+    ViewData["Title"] = "Oyun - " + Model.Lobby.Category;
     var currentPlayerName = ViewBag.CurrentPlayerName?.ToString();
     var gameState = Model.Lobby.GameState;
     var isMyTurn = gameState?.CurrentTurn == currentPlayerName;
@@ -21,7 +21,7 @@
                 <div class="card-body text-center">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <div></div> <!-- Spacing -->
-                        <h4>@Model.Lobby.Category - Lobi: <span id="lobbyCode" class="text-warning" style="cursor: pointer; user-select: all;" onclick="copyLobbyCode()" title="Kopyalamak için tıklayın">@Model.Lobby.LobbyCode</span></h4>
+                        <h4> Kategori: @Model.Lobby.Category </h4>
                         @if (Model.Lobby.HostPlayerName == currentPlayerName)
                         {
                             <button class="btn btn-warning btn-sm" onclick="resetGame()" title="Oyunu sıfırla ve lobiye dön">
@@ -84,6 +84,71 @@
         </div>
     </div>
 
+    <!-- Oyun Sonu -->
+    @if (gameState?.IsGameActive == false && !string.IsNullOrEmpty(gameState.Winner))
+    {
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                @{
+                var isGameCompleted = _gameService.HasWinningTeam(gameState.Team1Score, gameState.Team2Score);
+                var gameWinner = _gameService.GetWinningTeam(gameState.Team1Score, gameState.Team2Score);
+                }
+                
+                @if (isGameCompleted)
+                {
+                    <div class="alert alert-success">
+                        <h4>🏆 Oyun Bitti!</h4>
+                    <p><strong>@(gameWinner == "Sol" ? "🔴 Kırmızı Takım" : "🔵 Mavi Takım")</strong> oyunu kazandı!</p>
+                    </div>
+                @if (Model.Lobby.HostPlayerName == currentPlayerName)
+                    {
+                    <button class="btn btn-primary btn-lg" onclick="resetGame()">
+                        <i class="fas fa-home"></i> Herkesi Lobiye Döndür
+                            </button>
+                    }
+                    else
+                    {
+                        <p class="text-muted">Host'un herkesi lobiye döndürmesi bekleniyor...</p>
+                        }
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">
+                            <h4>🎉 Round Bitti!</h4>
+                        <p><strong>@(gameState.Winner == "Sol" ? "🔴 Kırmızı Takım" : "🔵 Mavi Takım")</strong> bu round'u kazandı!</p>
+                        </div>
+                        
+                    @if (Model.Lobby.HostPlayerName == currentPlayerName)
+                        {
+                            <div class="card mt-3">
+                                <div class="card-body">
+                                <form method="post" action="/Game/StartNewRound" class="row g-3 justify-content-center align-items-center">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
+                                    <div class="col-md-6">
+                                        <label for="categorySelect" class="form-label">Yeni Round için Kategori Değiştir (İsteğe Bağlı)</label>
+                                        <select class="form-select" name="newCategoryName" id="categorySelect">
+                                            <option value="">Mevcut Kategoriyi Koru (@Model.Lobby.Category)</option>
+                                            @foreach (var category in Model.Categories)
+                                            {
+                                                <option value="@category.Name">@category.Name</option>
+                                            }
+                                            </select>
+                                        </div>
+                                    <div class="col-md-4 mt-auto">
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fas fa-redo"></i> Yeni Round Başlat
+                                    </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                }
+                </div>
+            </div>
+        }
+
     <!-- Soru Bölümü -->
     <div class="row mb-4">
         <div class="col-12">
@@ -92,21 +157,21 @@
                     <h5>Soru</h5>
                 </div>
                 <div class="card-body text-center">
-                    <h4 class="text-primary">@(gameState?.CurrentQuestion?.Text ?? "Oyun henüz başlamadı")</h4>
+                    <h4 id="questionText" class="text-primary">@(gameState?.CurrentQuestion?.Text ?? "Oyun henüz başlamadı")</h4>
                     
                     @if (Model.Lobby.RefereeName == currentPlayerName && gameState?.CurrentQuestion != null)
                     {
                         var correctAnswer = gameState.CurrentQuestion.Answers.FirstOrDefault(a => a.IsCorrect)?.Text;
-                        <div class="alert alert-info mt-3"><strong>Doğru Cevap:</strong> @correctAnswer</div>
+                        <div class="alert alert-info mt-3"><strong>Doğru Cevap:</strong> <span id="correctAnswerText">@correctAnswer</span></div>
 
                         <div id="validation-buttons" class="mt-2">
                             <button id="validate-sol" class="btn btn-outline-danger" onclick="validateAnswer('Sol')" 
                                 @(gameState.IsTeam1VolunteerAnswerValidated ? "disabled" : "")>
-                                🔴 Kırmızı Takım @(gameState.IsTeam1VolunteerAnswerValidated ? "Doğrulandı" : "Doğrula")
+                                🔴 Kırmızı Takım Doğrula
                             </button>
                             <button id="validate-sag" class="btn btn-outline-primary" onclick="validateAnswer('Sağ')"
                                 @(gameState.IsTeam2VolunteerAnswerValidated ? "disabled" : "")>
-                                🔵 Mavi Takım @(gameState.IsTeam2VolunteerAnswerValidated ? "Doğrulandı" : "Doğrula")
+                                🔵 Mavi Takım Doğrula
                             </button>
                         </div>
                     }
@@ -153,71 +218,6 @@
             </div>
         }
 
-    <!-- Oyun Sonu -->
-        @if (gameState?.IsGameActive == false && !string.IsNullOrEmpty(gameState.Winner))
-        {
-            <div class="row mb-4">
-                <div class="col-12 text-center">
-                    @{
-                    var isGameCompleted = _gameService.HasWinningTeam(gameState.Team1Score, gameState.Team2Score);
-                    var gameWinner = _gameService.GetWinningTeam(gameState.Team1Score, gameState.Team2Score);
-                    }
-                    
-                    @if (isGameCompleted)
-                    {
-                        <div class="alert alert-success">
-                            <h4>🏆 Oyun Bitti!</h4>
-                        <p><strong>@(gameWinner == "Sol" ? "🔴 Kırmızı Takım" : "🔵 Mavi Takım")</strong> oyunu kazandı!</p>
-                        </div>
-                    @if (Model.Lobby.HostPlayerName == currentPlayerName)
-                        {
-                        <button class="btn btn-primary btn-lg" onclick="resetGame()">
-                            <i class="fas fa-home"></i> Herkesi Lobiye Döndür
-                                </button>
-                    }
-                    else
-                    {
-                        <p class="text-muted">Host'un herkesi lobiye döndürmesi bekleniyor...</p>
-                        }
-                    }
-                    else
-                    {
-                        <div class="alert alert-warning">
-                            <h4>🎉 Round Bitti!</h4>
-                        <p><strong>@(gameState.Winner == "Sol" ? "🔴 Kırmızı Takım" : "🔵 Mavi Takım")</strong> bu round'u kazandı!</p>
-                        </div>
-                        
-                    @if (Model.Lobby.HostPlayerName == currentPlayerName)
-                        {
-                            <div class="card mt-3">
-                                <div class="card-body">
-                                <form method="post" action="/Game/StartNewRound" class="row g-3 justify-content-center align-items-center">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
-                                    <div class="col-md-6">
-                                        <label for="categorySelect" class="form-label">Yeni Round için Kategori Değiştir (İsteğe Bağlı)</label>
-                                        <select class="form-select" name="newCategoryName" id="categorySelect">
-                                            <option value="">Mevcut Kategoriyi Koru (@Model.Lobby.Category)</option>
-                                            @foreach (var category in Model.Categories)
-                                            {
-                                                <option value="@category.Name">@category.Name</option>
-                                            }
-                                            </select>
-                                        </div>
-                                    <div class="col-md-4 mt-auto">
-                                    <button type="submit" class="btn btn-primary btn-lg">
-                                        <i class="fas fa-redo"></i> Yeni Round Başlat
-                                    </button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    }
-                }
-                </div>
-            </div>
-        }
-
     <!-- Oyuncu Listeleri -->
     <div class="row mt-4">
         <div class="col-md-6">
@@ -229,17 +229,28 @@
                     @foreach (var player in Model.Lobby.Players.Where(p => p.Team == "Sol"))
                     {
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            @player.Name
-                            <div>
-                                @if (player.Name == gameState?.ActivePlayer1)
+                            <span>
+                                @player.Name
+                                @if (player.Name == Model.Lobby.GameState?.Team1Volunteer)
                                 {
-                                    <span class="badge bg-success">AKTİF</span>
+                                    <span class="badge bg-warning ms-2">Gönüllü</span>
                                 }
                                 @if (player.Name == currentPlayerName)
                                 {
-                                    <span class="badge bg-info">SEN</span>
+                                    <span class="badge bg-info ms-2">SEN</span>
                                 }
-                            </div>
+                            </span>
+                            <span>
+                                @if (player.Name == currentPlayerName)
+                                {
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-warning ms-2"
+                                            onclick="volunteerForTeam('Sol')"
+                                            @(player.Name == Model.Lobby.GameState?.Team1Volunteer ? "disabled" : "")>
+                                        Gönüllü Ol
+                                    </button>
+                                }
+                            </span>
                         </li>
                     }
                 </ul>
@@ -254,17 +265,28 @@
                     @foreach (var player in Model.Lobby.Players.Where(p => p.Team == "Sağ"))
                     {
                         <li class="list-group-item d-flex justify-content-between align-items-center">
-                            @player.Name
-                            <div>
-                                @if (player.Name == gameState?.ActivePlayer2)
+                            <span>
+                                @player.Name
+                                @if (player.Name == Model.Lobby.GameState?.Team2Volunteer)
                                 {
-                                    <span class="badge bg-success">AKTİF</span>
+                                    <span class="badge bg-warning ms-2">Gönüllü</span>
                                 }
                                 @if (player.Name == currentPlayerName)
                                 {
-                                    <span class="badge bg-info">SEN</span>
+                                    <span class="badge bg-info ms-2">SEN</span>
                                 }
-                            </div>
+                            </span>
+                            <span>
+                                @if (player.Name == currentPlayerName)
+                                {
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-warning ms-2"
+                                            onclick="volunteerForTeam('Sağ')"
+                                            @(player.Name == Model.Lobby.GameState?.Team2Volunteer ? "disabled" : "")>
+                                        Gönüllü Ol
+                                    </button>
+                                }
+                            </span>
                         </li>
                     }
                 </ul>
@@ -301,7 +323,6 @@
             location.reload();
         });
         connection.on("GameReset", () => {
-            alert("Host oyunu sıfırladı. Lobiye dönülüyor...");
             window.location.href = `/Lobby/LobbyRoom?code=${lobbyCode}`;
         });
 
@@ -387,10 +408,9 @@
                 const validateSagBtn = document.getElementById('validate-sag');
                 if (validateSolBtn && validateSagBtn) {
                     validateSolBtn.disabled = state.isTeam1VolunteerAnswerValidated;
-                    validateSolBtn.innerHTML = state.isTeam1VolunteerAnswerValidated ? '🔴 Kırmızı Takım Doğrulandı' : '🔴 Kırmızı Takım Doğrula';
-                    
+                    validateSolBtn.innerHTML = '🔴 Kırmızı Takımı Doğrula';
                     validateSagBtn.disabled = state.isTeam2VolunteerAnswerValidated;
-                    validateSagBtn.innerHTML = state.isTeam2VolunteerAnswerValidated ? '🔵 Mavi Takım Doğrulandı' : '🔵 Mavi Takım Doğrula';
+                    validateSagBtn.innerHTML = '🔵 Mavi Takımı Doğrula';
                 }
             }
                 
@@ -399,6 +419,17 @@
                 if (gameUpdateInterval) clearInterval(gameUpdateInterval);
                 sessionStorage.setItem('roundOverReloaded', 'true');
                 setTimeout(() => location.reload(), 1500);
+            }
+
+            // Soru metnini güncelle
+            const questionText = document.getElementById('questionText');
+            if (questionText && state.question) {
+                questionText.textContent = state.question;
+            }
+            // Doğru cevabı güncelle (hakem için)
+            const correctAnswerText = document.getElementById('correctAnswerText');
+            if (correctAnswerText && state.answer) {
+                correctAnswerText.textContent = state.answer;
             }
         }
 
@@ -448,6 +479,28 @@
                     if (!data.success) alert(data.message || 'Bir hata oluştu.');
                 }).catch(err => console.error(err));
             }
+        }
+
+        function volunteerForTeam(team) {
+            fetch('/Game/VolunteerForTeam', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'RequestVerificationToken': requestVerificationToken
+                },
+                body: `code=${lobbyCode}&team=${team}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload(); // veya SignalR ile otomatik güncelleniyorsa reload gerekmez
+                } else {
+                    alert(data.message || 'Bir hata oluştu.');
+                }
+            })
+            .catch(err => {
+                alert('Bir hata oluştu.');
+            });
         }
 
         // Initialization
