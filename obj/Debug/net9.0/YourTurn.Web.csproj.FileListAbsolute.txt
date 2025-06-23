@@ -174,3 +174,4 @@ C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.pdb
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.genruntimeconfig.cache
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\ref\YourTurn.Web.dll
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\9z2kkmglh3-t2j8k5vww7.gz
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\zxlsama5e6-uyh31pb1ba.gz
