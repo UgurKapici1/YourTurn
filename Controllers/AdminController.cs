@@ -7,10 +7,12 @@ using BCrypt.Net;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 
 namespace YourTurn.Web.Controllers
 {
     // Yönetici paneli ile ilgili tüm istekleri yönetir
+    [Authorize(Roles = "Admin,SuperAdmin")]
     public class AdminController : Controller
     {
         private readonly YourTurnDbContext _context;
@@ -25,6 +27,7 @@ namespace YourTurn.Web.Controllers
 
         // GET: /admin için varsayılan rota
         [Route("admin")]
+        [AllowAnonymous]
         public IActionResult Index()
         {
             if (User.Identity?.IsAuthenticated == true)
@@ -36,6 +39,7 @@ namespace YourTurn.Web.Controllers
 
         // GET: Yönetici giriş sayfasını görüntüler
         [Route("admin/login")]
+        [AllowAnonymous]
         public IActionResult Login()
         {
             if (User.Identity?.IsAuthenticated == true)
@@ -48,6 +52,7 @@ namespace YourTurn.Web.Controllers
         // POST: Yönetici giriş işlemini gerçekleştirir
         [HttpPost]
         [Route("admin/login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login(string username, string password)
         {
             var admin = await _context.Admins
@@ -105,11 +110,6 @@ namespace YourTurn.Web.Controllers
         [Route("admin/dashboard")]
         public async Task<IActionResult> Dashboard()
         {
-            if (User.Identity?.IsAuthenticated != true)
-            {
-                return RedirectToAction("Login");
-            }
-
             // Get active lobbies and players from in-memory store
             var activeLobbies = LobbyStore.GetActiveLobbies();
             var activePlayers = LobbyStore.PlayerToConnections.Keys;
@@ -136,11 +136,6 @@ namespace YourTurn.Web.Controllers
         [Route("admin/dashboard-data")]
         public IActionResult DashboardData()
         {
-            if (User.Identity?.IsAuthenticated != true)
-            {
-                return Unauthorized();
-            }
-
             // Get active lobbies and players from in-memory store
             var activeLobbies = LobbyStore.GetActiveLobbies();
             var activePlayers = LobbyStore.PlayerToConnections.Keys;
@@ -168,10 +163,6 @@ namespace YourTurn.Web.Controllers
         [Route("admin/change-password")]
         public IActionResult ChangePassword()
         {
-            if (User.Identity?.IsAuthenticated != true)
-            {
-                return RedirectToAction("Login");
-            }
             return View();
         }
 
@@ -180,11 +171,6 @@ namespace YourTurn.Web.Controllers
         [Route("admin/change-password")]
         public async Task<IActionResult> ChangePassword(string currentPassword, string newPassword, string confirmPassword)
         {
-            if (User.Identity?.IsAuthenticated != true)
-            {
-                return RedirectToAction("Login");
-            }
-
             if (newPassword != confirmPassword)
             {
                 ModelState.AddModelError("", "Yeni şifreler eşleşmiyor");
@@ -226,10 +212,6 @@ namespace YourTurn.Web.Controllers
         [Route("admin/change-username")]
         public IActionResult ChangeUsername()
         {
-            if (User.Identity?.IsAuthenticated != true)
-            {
-                return RedirectToAction("Login");
-            }
             return View();
         }
 
@@ -238,22 +220,9 @@ namespace YourTurn.Web.Controllers
         [Route("admin/change-username")]
         public async Task<IActionResult> ChangeUsername(string currentPassword, string newUsername)
         {
-            if (User.Identity?.IsAuthenticated != true)
-            {
-                return RedirectToAction("Login");
-            }
-
             if (string.IsNullOrEmpty(newUsername) || newUsername.Length < 3)
             {
                 ModelState.AddModelError("", "Yeni kullanıcı adı en az 3 karakter olmalıdır");
-                return View();
-            }
-
-            // Check if username already exists
-            var existingAdmin = await _context.Admins.FirstOrDefaultAsync(a => a.Username == newUsername);
-            if (existingAdmin != null)
-            {
-                ModelState.AddModelError("", "Bu kullanıcı adı zaten kullanılıyor");
                 return View();
             }
 
@@ -272,40 +241,35 @@ namespace YourTurn.Web.Controllers
             }
 
             var oldUsername = admin.Username;
-            // Update username
             admin.Username = newUsername;
             await _context.SaveChangesAsync();
 
             // Log username change
             await LogAdminAction(adminId, "ChangeUsername", $"Kullanıcı adı değiştirildi: {oldUsername} -> {newUsername}");
 
-            // Sign out and redirect to login to refresh the session
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            TempData["SuccessMessage"] = "Kullanıcı adınız başarıyla değiştirildi! Lütfen yeni kullanıcı adınızla tekrar giriş yapın.";
-            return RedirectToAction("Login");
+            // Re-sign in to update the claims
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, admin.Username),
+                new Claim(ClaimTypes.NameIdentifier, admin.Id.ToString()),
+                new Claim(ClaimTypes.Role, admin.Role)
+            };
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
+
+            TempData["SuccessMessage"] = "Kullanıcı adınız başarıyla değiştirildi!";
+            return RedirectToAction("Dashboard");
         }
 
         // GET: Oyuncu listesini görüntüler
         [Route("admin/players")]
         public async Task<IActionResult> Players()
         {
-            if (User.Identity?.IsAuthenticated != true)
-            {
-                return RedirectToAction("Login");
-            }
-
-            // Get active players from in-memory store
-            var activePlayers = LobbyStore.PlayerToConnections.Keys;
-            var dbPlayers = await _context.PlayerStats
-                .OrderByDescending(p => p.LastSeenAt ?? p.CreatedAt)
-                .ToListAsync();
-
             var viewModel = new AdminPlayersViewModel
             {
-                ActivePlayers = activePlayers.ToList(),
-                DatabasePlayers = dbPlayers
+                ActivePlayers = LobbyStore.PlayerToConnections.Keys.ToList(),
+                DatabasePlayers = await _context.PlayerStats.OrderByDescending(p => p.LastSeenAt).ToListAsync()
             };
-
             return View(viewModel);
         }
 
@@ -313,40 +277,19 @@ namespace YourTurn.Web.Controllers
         [Route("admin/lobbies")]
         public async Task<IActionResult> Lobbies()
         {
-            if (User.Identity?.IsAuthenticated != true)
-            {
-                return RedirectToAction("Login");
-            }
-
-            // Get active lobbies from in-memory store
-            var activeLobbies = LobbyStore.GetActiveLobbies();
-            var dbLobbies = await _context.LobbyHistories
-                .OrderByDescending(l => l.CreatedAt)
-                .ToListAsync();
-
             var viewModel = new AdminLobbiesViewModel
             {
-                ActiveLobbies = activeLobbies,
-                DatabaseLobbies = dbLobbies
+                ActiveLobbies = LobbyStore.GetActiveLobbies(),
+                DatabaseLobbies = await _context.LobbyHistories.OrderByDescending(l => l.CreatedAt).ToListAsync()
             };
-
             return View(viewModel);
         }
 
-        // GET: Yönetici ayarlarını görüntüler
+        // GET: Ayarları görüntüler
         [Route("admin/settings")]
         public async Task<IActionResult> Settings()
         {
-            if (User.Identity?.IsAuthenticated != true)
-            {
-                return RedirectToAction("Login");
-            }
-
-            var settings = await _context.AdminSettings
-                .Include(s => s.UpdatedByAdmin)
-                .OrderBy(s => s.SettingKey)
-                .ToListAsync();
-
+            var settings = await _context.AdminSettings.ToListAsync();
             return View(settings);
         }
 

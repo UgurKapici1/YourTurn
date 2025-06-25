@@ -34,7 +34,7 @@ namespace YourTurn.Web.Migrations
 
                     b.HasIndex("PlayerStatsId");
 
-                    b.ToTable("LobbyHistoryPlayerStat");
+                    b.ToTable("LobbyHistoryPlayerStat", (string)null);
                 });
 
             modelBuilder.Entity("YourTurn.Web.Models.Admin", b =>
@@ -82,7 +82,7 @@ namespace YourTurn.Web.Migrations
                     b.HasIndex("Username")
                         .IsUnique();
 
-                    b.ToTable("Admins");
+                    b.ToTable("Admins", (string)null);
 
                     b.HasData(
                         new
@@ -133,7 +133,7 @@ namespace YourTurn.Web.Migrations
 
                     b.HasIndex("AdminId");
 
-                    b.ToTable("AdminLogs");
+                    b.ToTable("AdminLogs", (string)null);
                 });
 
             modelBuilder.Entity("YourTurn.Web.Models.AdminSetting", b =>
@@ -171,7 +171,7 @@ namespace YourTurn.Web.Migrations
 
                     b.HasIndex("UpdatedBy");
 
-                    b.ToTable("AdminSettings");
+                    b.ToTable("AdminSettings", (string)null);
 
                     b.HasData(
                         new
@@ -222,7 +222,7 @@ namespace YourTurn.Web.Migrations
 
                     b.HasIndex("QuestionId");
 
-                    b.ToTable("Answers");
+                    b.ToTable("Answers", (string)null);
                 });
 
             modelBuilder.Entity("YourTurn.Web.Models.Category", b =>
@@ -243,7 +243,7 @@ namespace YourTurn.Web.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("YourTurn.Web.Models.LobbyHistory", b =>
@@ -292,7 +292,7 @@ namespace YourTurn.Web.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("LobbyHistories");
+                    b.ToTable("LobbyHistories", (string)null);
                 });
 
             modelBuilder.Entity("YourTurn.Web.Models.PlayerStat", b =>
@@ -333,7 +333,7 @@ namespace YourTurn.Web.Migrations
                     b.HasIndex("PlayerName")
                         .IsUnique();
 
-                    b.ToTable("PlayerStats");
+                    b.ToTable("PlayerStats", (string)null);
                 });
 
             modelBuilder.Entity("YourTurn.Web.Models.Question", b =>
@@ -355,7 +355,7 @@ namespace YourTurn.Web.Migrations
 
                     b.HasIndex("CategoryId");
 
-                    b.ToTable("Questions");
+                    b.ToTable("Questions", (string)null);
                 });
 
             modelBuilder.Entity("LobbyHistoryPlayerStat", b =>

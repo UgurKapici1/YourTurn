@@ -1,6 +1,7 @@
 @model YourTurn.Web.Controllers.LobbyController.LobbyRoomViewModel
 
 @{
+    ViewData["Title"] = "Lobi";
     var currentPlayerName = ViewBag.CurrentPlayerName?.ToString();
     var currentPlayer = Model.Lobby.Players.FirstOrDefault(p => p.Name == currentPlayerName);
     var currentPlayerTeam = currentPlayer?.Team ?? "";
@@ -217,7 +218,7 @@ else if (Model.Lobby.RefereeName == currentPlayerName)
                                     }
                                 </div>
                             </div>
-                            @if (player.Name == currentPlayerName)
+                            @if (player.Name == currentPlayerName && (string.IsNullOrEmpty(team1Volunteer) || team1Volunteer == currentPlayerName))
                             {
                                 <div class="mt-2 text-center">
                                     @if (team1Volunteer != currentPlayerName)
@@ -288,7 +289,7 @@ else if (Model.Lobby.RefereeName == currentPlayerName)
                                     }
                                 </div>
                             </div>
-                            @if (player.Name == currentPlayerName)
+                            @if (player.Name == currentPlayerName && (string.IsNullOrEmpty(team2Volunteer) || team2Volunteer == currentPlayerName))
                             {
                                 <div class="mt-2 text-center">
                                     @if (team2Volunteer != currentPlayerName)

@@ -100,7 +100,6 @@ C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\scopedcss\bundle\YourTurn.Web.style
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\scopedcss\projectbundle\YourTurn.Web.bundle.scp.css
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\gwekk2o47z-b9sayid5wm.gz
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\w5thy4eul6-61n19gt1b8.gz
-C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\g0kw02kwpb-kk3lfg7d2k.gz
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\thi8ylx7bd-xtxxf3hu2r.gz
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\0du6unk27e-bqjiyaj88i.gz
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\8azeawycao-c2jlpeoesf.gz
@@ -174,4 +173,11 @@ C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.pdb
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.genruntimeconfig.cache
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\ref\YourTurn.Web.dll
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\9z2kkmglh3-t2j8k5vww7.gz
-C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\zxlsama5e6-uyh31pb1ba.gz
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\g0kw02kwpb-kk3lfg7d2k.gz
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\zxlsama5e6-7oznw6do8x.gz
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\publish\web.config
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\publish\appsettings.Development.json
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\publish\appsettings.json
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\publish\YourTurn.Web.deps.json
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\publish\YourTurn.Web.runtimeconfig.json
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\publish\YourTurn.Web.staticwebassets.endpoints.json

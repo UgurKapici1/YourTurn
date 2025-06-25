@@ -325,7 +325,7 @@ namespace YourTurn.Web.Controllers
                 }
                 else
                 {
-                    return BadRequest("Bu takımın zaten bir gönüllüsü var.");
+                    return BadRequest(new { message = "Bu takımda zaten gönüllü var." });
                 }
             }
             else if (request.team == "Sağ")
@@ -336,12 +336,12 @@ namespace YourTurn.Web.Controllers
                 }
                 else
                 {
-                    return BadRequest("Bu takımın zaten bir gönüllüsü var.");
+                    return BadRequest(new { message = "Bu takımda zaten gönüllü var." });
                 }
             }
             else
             {
-                return BadRequest("Geçersiz takım.");
+                return BadRequest(new { message = "Geçersiz takım." });
             }
 
             await _hubContext.Clients.Group(request.code).SendAsync("UpdateLobby");

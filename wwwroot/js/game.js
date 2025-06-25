@@ -93,6 +93,17 @@ function updateUI(state) {
         passTurnBtn.className = isMyTurn ? 'btn btn-lg btn-success' : 'btn btn-lg btn-secondary';
     }
 
+    // Update current turn indicator
+    const currentTurnPlayer = document.getElementById('current-turn-player');
+    if (currentTurnPlayer) {
+        currentTurnPlayer.textContent = state.currentTurn;
+        if (state.currentTurn === state.activePlayer1) {
+            currentTurnPlayer.className = 'text-danger';
+        } else {
+            currentTurnPlayer.className = 'text-primary';
+        }
+    }
+
     // Update timer status
      const timerStatus = document.getElementById('timerStatus');
      if(timerStatus){
@@ -146,8 +157,8 @@ function validateAnswer(team) {
 
 function passTurn() {
     const btn = document.getElementById('passTurnBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İşleniyor...';
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İşleniyor...';
 
     fetch('/Game/PassTurn', {
         method: 'POST',
@@ -157,12 +168,14 @@ function passTurn() {
     .then(res => res.json())
     .then(data => {
         if (!data.success) {
-            location.reload();
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-arrow-right"></i> Cevapla!';
         }
     }).catch(err => {
         console.error(err);
         alert("Bir ağ hatası oluştu.");
-        location.reload();
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-arrow-right"></i> Cevapla!';
     });
 }
 
