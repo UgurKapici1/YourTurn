@@ -181,3 +181,9 @@ C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\publish\appsettings.json
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\publish\YourTurn.Web.deps.json
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\publish\YourTurn.Web.runtimeconfig.json
 C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\publish\YourTurn.Web.staticwebassets.endpoints.json
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\publish\publish\web.config
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\publish\publish\appsettings.Development.json
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\publish\publish\appsettings.json
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\publish\publish\YourTurn.Web.deps.json
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\publish\publish\YourTurn.Web.runtimeconfig.json
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\publish\publish\YourTurn.Web.staticwebassets.endpoints.json

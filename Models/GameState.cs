@@ -43,6 +43,10 @@ namespace YourTurn.Web.Models
         public bool IsTeam1VolunteerAnswerValidated { get; set; }
         // Takım 2 gönüllüsünün cevabının doğrulanıp doğrulanmadığını belirtir
         public bool IsTeam2VolunteerAnswerValidated { get; set; }
+        // O turda sorulan soru ID'leri (tekrar gelmemesi için)
+        public List<int> AskedQuestionIds { get; set; } = new List<int>();
+        // Round sonucu için özel mesaj (ör: fuse'a göre bitti)
+        public string? RoundEndMessage { get; set; }
     }
 }
 

@@ -77,14 +77,13 @@
                             {
                                 <form method="post" action="/Lobby/ChooseCategory" class="d-flex gap-2">
                                     <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
-                                    <select class="form-select form-select-sm w-auto" name="category" id="categorySelect" required>
+                                    <select class="form-select form-select-sm w-auto" name="category" id="categorySelect" required onchange="this.form.submit()">
                                         <option value="">Seçin</option>
                                         @foreach (var category in Model.Categories)
                                         {
                                             <option value="@category.Name">@category.Name</option>
                                         }
                                     </select>
-                                    <button type="submit" class="btn btn-primary btn-sm">Seç</button>
                                 </form>
                             }
                             else

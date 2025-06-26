@@ -114,8 +114,15 @@
                     else
                     {
                         <div class="alert alert-warning">
-                            <h4>🎉 Round Bitti!</h4>
-                        <p><strong>@(gameState.Winner == "Sol" ? "🔴 Kırmızı Takım" : "🔵 Mavi Takım")</strong> bu round'u kazandı!</p>
+                            <h4>Round Bitti!</h4>
+                            @{
+                                var roundEndMessage = $"<strong>{(gameState.Winner == "Sol" ? "🔴 Kırmızı Takım" : "🔵 Mavi Takım")}</strong> bu round'u kazandı!";
+                                if (!string.IsNullOrEmpty(gameState?.RoundEndMessage))
+                                {
+                                    roundEndMessage = gameState.RoundEndMessage;
+                                }
+                            }
+                            <p>@Html.Raw(roundEndMessage)</p>
                         </div>
                         
                     @if (Model.Lobby.HostPlayerName == currentPlayerName)

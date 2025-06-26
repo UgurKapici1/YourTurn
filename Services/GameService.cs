@@ -59,7 +59,7 @@ namespace YourTurn.Web.Services
         }
 
         // Belirtilen kategoriden rastgele bir soru döndürür
-        public async Task<Question?> GetRandomQuestionAsync(string categoryName, int? excludeQuestionId = null)
+        public async Task<Question?> GetRandomQuestionAsync(string categoryName, List<int>? excludeQuestionIds = null)
         {
             var category = await _context.Categories
                 .Include(c => c.Questions)
@@ -72,9 +72,9 @@ namespace YourTurn.Web.Services
             }
 
             IEnumerable<Question> questions = category.Questions;
-            if (excludeQuestionId.HasValue)
+            if (excludeQuestionIds != null && excludeQuestionIds.Any())
             {
-                questions = questions.Where(q => q.Id != excludeQuestionId.Value);
+                questions = questions.Where(q => !excludeQuestionIds.Contains(q.Id));
             }
 
             var questionsList = questions.ToList();

@@ -99,11 +99,48 @@ namespace YourTurn.Web.Controllers
                 lobby.GameState.CurrentTurn = lobby.GameState.ActivePlayer1;
             }
 
-            var newQuestion = await _gameService.GetRandomQuestionAsync(lobby.Category, lobby.GameState.CurrentQuestion?.Id);
+            // Yeni soru seçerken, daha önce sorulanları hariç tut
+            var excludeIds = lobby.GameState.AskedQuestionIds ?? new List<int>();
+            if (lobby.GameState.CurrentQuestion != null && !excludeIds.Contains(lobby.GameState.CurrentQuestion.Id))
+            {
+                excludeIds.Add(lobby.GameState.CurrentQuestion.Id);
+            }
+            var newQuestion = await _gameService.GetRandomQuestionAsync(lobby.Category, excludeIds);
             if(newQuestion == null){
-                return Json(new { success = false, message = "Bu kategoride başka soru bulunamadı." });
+                // Soru kalmadıysa fuse'a bakarak turu bitir
+                string kaybedenTakim = null;
+                string kazananTakim = null;
+                if (lobby.GameState.FusePosition < 0) // Sol'a daha yakınsa
+                {
+                    kaybedenTakim = "Sol";
+                    kazananTakim = "Sağ";
+                    lobby.GameState.Team2Score++;
+                }
+                else if (lobby.GameState.FusePosition > 0) // Sağ'a daha yakınsa
+                {
+                    kaybedenTakim = "Sağ";
+                    kazananTakim = "Sol";
+                    lobby.GameState.Team1Score++;
+                }
+                else // Tam ortadaysa rastgele
+                {
+                    kaybedenTakim = new Random().Next(2) == 0 ? "Sol" : "Sağ";
+                    kazananTakim = kaybedenTakim == "Sol" ? "Sağ" : "Sol";
+                    if (kaybedenTakim == "Sol")
+                        lobby.GameState.Team2Score++;
+                    else
+                        lobby.GameState.Team1Score++;
+                }
+                lobby.GameState.Winner = kaybedenTakim;
+                lobby.GameState.IsGameActive = false;
+                lobby.GameState.IsTimerRunning = false;
+                lobby.GameState.RoundEndMessage = $"Bu round, kategoride başka soru kalmadığı için <strong>{(kazananTakim == "Sol" ? "🔴 Kırmızı Takım" : "🔵 Mavi Takım")}</strong> kazandı (fuse'a en uzak takım)!";
+                await _hubContext.Clients.Group(code).SendAsync("UpdateGame");
+                return Json(new { success = false, message = $"Bu kategoride başka soru kalmadı. Fuse {kaybedenTakim} takımına daha yakın olduğu için o takım turu kaybetti." });
             }
             lobby.GameState.CurrentQuestion = newQuestion;
+            lobby.GameState.AskedQuestionIds = excludeIds;
+            lobby.GameState.AskedQuestionIds.Add(newQuestion.Id);
             lobby.GameState.LastAnswerTime = DateTime.Now;
             lobby.GameState.LastTurnStartTime = DateTime.Now;
             lobby.GameState.IsTimerRunning = true;
@@ -261,6 +298,12 @@ namespace YourTurn.Web.Controllers
                  TempData["Error"] = "Yeni tur başlatılamadı. Seçilen kategori için soru bulunamadı.";
                  lobby.IsGameStarted = false;
                  return RedirectToAction("LobbyRoom", "Lobby", new { code });
+            }
+
+            // Yeni turda sorulan sorular listesini sıfırla ve ilk soruyu ekle
+            if (lobby.GameState != null && lobby.GameState.CurrentQuestion != null)
+            {
+                lobby.GameState.AskedQuestionIds = new List<int> { lobby.GameState.CurrentQuestion.Id };
             }
 
             var startingTeam = lobby.GameState.CurrentTurn == team1Volunteer ? "Sol" : "Sağ";
