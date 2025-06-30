@@ -1,4 +1,5 @@
 @inject YourTurn.Web.Services.GameService _gameService
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @model YourTurn.Web.Controllers.GameController.GameViewModel
 
 @{
@@ -9,6 +10,7 @@
     var isActivePlayer = currentPlayerName == gameState?.ActivePlayer1 || currentPlayerName == gameState?.ActivePlayer2;
     var currentPlayer = Model.Lobby.Players.FirstOrDefault(p => p.Name == currentPlayerName);
     var currentPlayerTeam = currentPlayer?.Team ?? "";
+    var tokenSet = Antiforgery.GetAndStoreTokens(Context);
 }
 
 @Html.AntiForgeryToken()
@@ -166,23 +168,6 @@
                 <div class="card-body text-center">
                     <h4 id="questionText" class="text-primary">@(gameState?.CurrentQuestion?.Text ?? "Oyun henüz başlamadı")</h4>
                     
-                    @if (Model.Lobby.RefereeName == currentPlayerName && gameState?.CurrentQuestion != null)
-                    {
-                        var correctAnswer = gameState.CurrentQuestion.Answers.FirstOrDefault(a => a.IsCorrect)?.Text;
-                        <div class="alert alert-info mt-3"><strong>Doğru Cevap:</strong> <span id="correctAnswerText">@correctAnswer</span></div>
-
-                        <div id="validation-buttons" class="mt-2">
-                            <button id="validate-sol" class="btn btn-outline-danger" onclick="validateAnswer('Sol')" 
-                                @(gameState.IsTeam1VolunteerAnswerValidated ? "disabled" : "")>
-                                🔴 Kırmızı Takım Doğrula
-                            </button>
-                            <button id="validate-sag" class="btn btn-outline-primary" onclick="validateAnswer('Sağ')"
-                                @(gameState.IsTeam2VolunteerAnswerValidated ? "disabled" : "")>
-                                🔵 Mavi Takım Doğrula
-                            </button>
-                        </div>
-                    }
-                    
                     <div id="turnInfo">
                         @if (gameState?.IsGameActive == true)
                         {
@@ -211,19 +196,21 @@
     </div>
 
     <!-- Kontrol Butonları -->
-        @if (gameState?.IsGameActive == true && isActivePlayer)
-        {
-            <div class="row mb-4">
-                <div class="col-12 text-center">
-                    <button id="passTurnBtn" class="btn btn-lg @(isMyTurn ? "btn-success" : "btn-secondary")" 
-                            onclick="passTurn()" 
-                            @(isMyTurn ? "" : "disabled")>
-                        <i class="fas @(isMyTurn ? "fa-arrow-right" : "fa-clock")"></i> 
-                    @(isMyTurn ? "Cevapla!" : "Sıra Rakipte")
-                    </button>
-                </div>
+    @if (gameState?.IsGameActive == true && isActivePlayer)
+    {
+        <div id="answer-form-container" class="row mb-4" style="@(isMyTurn ? "" : "display: none;")">
+            <div class="col-12 text-center">
+                <form id="answerForm" class="d-flex justify-content-center align-items-center" onsubmit="event.preventDefault();">
+                    <div class="input-group">
+                        <input type="text" id="answerInput" class="form-control form-control-lg" placeholder="Cevabınızı yazın..." oninput="checkAnswer()" autocomplete="off">
+                        <button class="btn btn-outline-secondary" type="button" id="speechBtn" onclick="toggleSpeechRecognition()">
+                            <i class="fas fa-microphone"></i>
+                        </button>
+                    </div>
+                </form>
             </div>
-        }
+        </div>
+    }
 
     <!-- Oyuncu Listeleri -->
     <div class="row mt-4">
@@ -313,7 +300,6 @@
     <script>
         window.lobbyCode = '@Model.Lobby.LobbyCode';
         window.currentPlayerName = '@currentPlayerName';
-        window.isReferee = '@(Model.Lobby.RefereeName == currentPlayerName)';
         window.requestVerificationToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
     </script>
     <script src="~/js/game.js"></script>

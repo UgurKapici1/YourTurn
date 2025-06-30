@@ -157,13 +157,6 @@ namespace YourTurn.Web.Controllers
                 return Forbid("Başka bir oyuncu adına işlem yapamazsınız.");
             }
 
-            // Hakemin takıma katılmasını engelle
-            if (lobby.RefereeName == playerName)
-            {
-                TempData["Error"] = "Hakemler bir takıma katılamaz. Takıma katılmak için hakemlikten ayrılmalısınız.";
-                return RedirectToAction("LobbyRoom", new { code });
-            }
-
             var player = lobby.Players.FirstOrDefault(p => p.Name == playerName);
             if (player != null)
             {
@@ -391,8 +384,8 @@ namespace YourTurn.Web.Controllers
             }
 
             var random = new Random();
-            var playersToAssign = lobby.Players.Where(p => string.IsNullOrEmpty(p.Team) && p.Name != lobby.RefereeName);
-            playersToAssign = playersToAssign.OrderBy(p => random.Next()).ToList();
+            var playersToAssign = lobby.Players.Where(p => string.IsNullOrEmpty(p.Team)).ToList();
+            playersToAssign = playersToAssign.OrderBy(x => random.Next()).ToList();
 
             var team1Count = lobby.Players.Count(p => p.Team == "Sol");
             var team2Count = lobby.Players.Count(p => p.Team == "Sağ");
@@ -420,74 +413,24 @@ namespace YourTurn.Web.Controllers
         public async Task<IActionResult> ResetTeams(string code)
         {
             var lobby = _gameService.FindLobby(code);
-            if (lobby == null || lobby.IsGameStarted)
-                return NotFound();
+            if (lobby == null) return NotFound();
 
             var currentPlayerName = HttpContext.Session.GetString("PlayerName");
             if (lobby.HostPlayerName != currentPlayerName)
             {
-                return Forbid("Sadece ev sahibi takımları sıfırlayabilir.");
+                return Forbid();
             }
 
             foreach (var player in lobby.Players)
             {
                 player.Team = "";
             }
-            
+
             if (lobby.GameState != null)
             {
                 lobby.GameState.Team1Volunteer = null;
                 lobby.GameState.Team2Volunteer = null;
             }
-
-            await _hubContext.Clients.Group(code).SendAsync("UpdateLobby");
-            return RedirectToAction("LobbyRoom", new { code });
-        }
-
-        // Oyuncunun hakem olmasını sağlar
-        [HttpPost]
-        public async Task<IActionResult> BecomeReferee(string code)
-        {
-            var lobby = _gameService.FindLobby(code);
-            if (lobby == null || lobby.IsGameStarted)
-                return NotFound();
-
-            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
-
-            if (!string.IsNullOrEmpty(lobby.RefereeName))
-            {
-                TempData["Error"] = "Bu lobide zaten bir hakem var.";
-                return RedirectToAction("LobbyRoom", new { code });
-            }
-
-            var player = lobby.Players.FirstOrDefault(p => p.Name == currentPlayerName);
-            if (player != null && !string.IsNullOrEmpty(player.Team))
-            {
-                TempData["Error"] = "Hakem olmak için önce takımınızdan ayrılmalısınız.";
-                return RedirectToAction("LobbyRoom", new { code });
-            }
-
-            lobby.RefereeName = currentPlayerName;
-
-            await _hubContext.Clients.Group(code).SendAsync("UpdateLobby");
-            return RedirectToAction("LobbyRoom", new { code });
-        }
-
-        // Hakemin görevini bırakmasını sağlar
-        [HttpPost]
-        public async Task<IActionResult> LeaveReferee(string code)
-        {
-            var lobby = _gameService.FindLobby(code);
-            if (lobby == null || lobby.IsGameStarted)
-                return NotFound();
-            
-            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
-            if (lobby.RefereeName != currentPlayerName)
-            {
-                return Forbid("Sadece mevcut hakem bu rolden ayrılabilir.");
-            }
-
-            lobby.RefereeName = null;
 
             await _hubContext.Clients.Group(code).SendAsync("UpdateLobby");
             return RedirectToAction("LobbyRoom", new { code });
@@ -499,7 +442,8 @@ namespace YourTurn.Web.Controllers
             public string code { get; set; }
             public string team { get; set; }
         }
-        
+
+        // Lobi odası için view model
         public class LobbyRoomViewModel
         {
             public Lobby Lobby { get; set; }

@@ -3,6 +3,8 @@ using YourTurn.Web.Stores;
 using YourTurn.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.SignalR;
+using YourTurn.Web.Hubs;
 
 namespace YourTurn.Web.Services
 {
@@ -10,11 +12,13 @@ namespace YourTurn.Web.Services
     public class GameService
     {
         private readonly YourTurnDbContext _context;
+        private readonly IHubContext<GameHub> _hubContext;
         private const int HOST_TIMEOUT_SECONDS = 30; // Ana bilgisayarın sinyal gönderme zaman aşımı
 
-        public GameService(YourTurnDbContext context)
+        public GameService(YourTurnDbContext context, IHubContext<GameHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         // Bir lobiyi koduna göre bulur
@@ -198,6 +202,104 @@ namespace YourTurn.Web.Services
             }
 
             return (true, null);
+        }
+
+        public async Task<object> SubmitAnswerAsync(string lobbyCode, string playerName, string answer)
+        {
+            var lobby = FindLobby(lobbyCode);
+            if (lobby?.GameState == null)
+            {
+                return new { success = false, message = "Oyun bulunamadı." };
+            }
+
+            if (lobby.GameState.CurrentTurn != playerName)
+            {
+                return new { success = false, message = "Sıra sizde değil." };
+            }
+
+            var correctAnswer = lobby.GameState.CurrentQuestion?.Answers.FirstOrDefault(a => a.IsCorrect)?.Text;
+            if (correctAnswer == null)
+            {
+                return new { success = false, message = "Mevcut soru için doğru cevap bulunamadı." };
+            }
+
+            var isCorrect = string.Equals(answer.Trim(), correctAnswer.Trim(), StringComparison.OrdinalIgnoreCase);
+
+            if (isCorrect)
+            {
+                lobby.GameState.IsTimerRunning = false;
+
+                // Turnu kimin pasladığına göre fitili hareket ettir
+                if (lobby.GameState.CurrentTurn == lobby.GameState.ActivePlayer1)
+                {
+                    // Kırmızı takım doğru cevap verdi, fitil maviye doğru ilerler.
+                    lobby.GameState.FusePosition += 25; 
+                }
+                else
+                {
+                    // Mavi takım doğru cevap verdi, fitil kırmızıya doğru ilerler.
+                    lobby.GameState.FusePosition -= 25;
+                }
+                lobby.GameState.FusePosition = Math.Clamp(lobby.GameState.FusePosition, -100, 100);
+
+
+                // Sıradaki oyuncuya geç
+                lobby.GameState.CurrentTurn = lobby.GameState.CurrentTurn == lobby.GameState.ActivePlayer1
+                    ? lobby.GameState.ActivePlayer2
+                    : lobby.GameState.ActivePlayer1;
+
+                // Yeni soru al
+                var excludeIds = lobby.GameState.AskedQuestionIds ?? new List<int>();
+                if (lobby.GameState.CurrentQuestion != null && !excludeIds.Contains(lobby.GameState.CurrentQuestion.Id))
+                {
+                    excludeIds.Add(lobby.GameState.CurrentQuestion.Id);
+                }
+                var newQuestion = await GetRandomQuestionAsync(lobby.Category, excludeIds);
+
+                if (newQuestion == null)
+                {
+                    // Kategoriye ait soru kalmadı, round biter
+                    string kazananTakim;
+                    if (lobby.GameState.FusePosition < 0) { // Sol'a daha yakınsa, Sağ kazanır
+                        kazananTakim = "Sağ";
+                        lobby.GameState.Team2Score++;
+                    } else { // Sağ'a daha yakınsa veya ortadaysa, Sol kazanır
+                        kazananTakim = "Sol";
+                        lobby.GameState.Team1Score++;
+                    }
+                    lobby.GameState.Winner = kazananTakim;
+                    lobby.GameState.IsGameActive = false;
+                    lobby.GameState.RoundEndMessage = "Bu kategorideki tüm sorular cevaplandı! Fuse pozisyonuna göre round'un galibi belirlendi.";
+                }
+                else
+                {
+                    lobby.GameState.CurrentQuestion = newQuestion;
+                    lobby.GameState.AskedQuestionIds = excludeIds;
+                    lobby.GameState.LastTurnStartTime = DateTime.Now;
+                    lobby.GameState.IsTimerRunning = true; // Yeni soruyla zamanı başlat
+                }
+
+                await _hubContext.Clients.Group(lobbyCode).SendAsync("UpdateGame");
+                return new { success = true, isCorrect = true };
+            }
+            else
+            {
+                // Yanlış cevap
+                return new { success = true, isCorrect = false, message = "Yanlış cevap, tekrar deneyin!" };
+            }
+        }
+
+        public async Task ResetGameAsync(string code, string hostPlayerName)
+        {
+            var lobby = FindLobby(code);
+            if (lobby == null) return;
+
+            if (lobby.HostPlayerName != hostPlayerName) return;
+
+            lobby.IsGameStarted = false;
+            lobby.GameState = null;
+
+            await _hubContext.Clients.Group(code).SendAsync("GameReset");
         }
     }
 } 

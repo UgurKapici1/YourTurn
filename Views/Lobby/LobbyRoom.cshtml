@@ -48,10 +48,6 @@
                                     {
                                         <span class="badge bg-success">Sen</span>
                                     }
-                                    @if (Model.Lobby.RefereeName == player.Name)
-                                    {
-                                        <span class="badge bg-info"><i class="fas fa-gavel"></i> Hakem</span>
-                                    }
                                 </li>
                             }
                         </ul>
@@ -151,41 +147,6 @@ else
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
 }
-<!-- Hakem seçimi ve rozet -->
-@if (string.IsNullOrEmpty(Model.Lobby.RefereeName))
-{
-    <div class="text-center mb-3">
-        <form method="post" action="/Lobby/BecomeReferee">
-            <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
-            <button type="submit" class="btn btn-outline-info">
-                <i class="fas fa-gavel"></i> Hakem ol
-            </button>
-        </form>
-    </div>
-}
-else if (Model.Lobby.RefereeName == currentPlayerName)
-{
-    <div class="text-center mb-3">
-        <form method="post" action="/Lobby/LeaveReferee">
-            <input type="hidden" name="code" value="@Model.Lobby.LobbyCode" />
-            <button type="submit" class="btn btn-outline-danger">
-                <i class="fas fa-times"></i> Hakemlikten Ayrıl
-            </button>
-        </form>
-    </div>
-}
-
-<!-- Takım kartlarının üstünde hakem kutusu -->
-@if (!string.IsNullOrEmpty(Model.Lobby.RefereeName))
-{
-    <div class="row mb-2">
-        <div class="col-12 d-flex justify-content-center">
-            <div class="bg-info text-white rounded px-3 py-1 shadow-sm" style="display:inline-block; font-size:1rem;">
-                <i class="fas fa-gavel"></i> Hakem: <strong>@Model.Lobby.RefereeName</strong>
-            </div>
-        </div>
-    </div>
-}
 
 <div class="row mt-4">
     <!-- Kırmızı Takım (Sol) -->
@@ -210,10 +171,6 @@ else if (Model.Lobby.RefereeName == currentPlayerName)
                                     @if (Model.Lobby.GameState?.Team1Volunteer == player.Name)
                                     {
                                         <span class="badge bg-danger">Gönüllü</span>
-                                    }
-                                    @if (Model.Lobby.RefereeName == player.Name)
-                                    {
-                                        <span class="badge bg-info"><i class="fas fa-gavel"></i> Hakem</span>
                                     }
                                 </div>
                             </div>
@@ -281,10 +238,6 @@ else if (Model.Lobby.RefereeName == currentPlayerName)
                                     @if (Model.Lobby.GameState?.Team2Volunteer == player.Name)
                                     {
                                         <span class="badge bg-primary">Gönüllü</span>
-                                    }
-                                    @if (Model.Lobby.RefereeName == player.Name)
-                                    {
-                                        <span class="badge bg-info"><i class="fas fa-gavel"></i> Hakem</span>
                                     }
                                 </div>
                             </div>

@@ -8,14 +8,14 @@ namespace YourTurn.Web.Models
         // Lobiyi oluşturan oyuncunun adı
         public required string HostPlayerName { get; set; }
         // Oyun kategorisi
-        public string? Category { get; set; }
+        public string Category { get; set; } = string.Empty;
         // Lobinin oluşturulma tarihi
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         // Lobideki oyuncuların listesi
         public List<Player> Players { get; set; } = new();
         // Oyunun başlayıp başlamadığını belirtir
         public bool IsGameStarted { get; set; } = false;
-        // Oyunun mevcut durumu
+        // Oyunla ilgili mevcut durumu tutar
         public GameState? GameState { get; set; }
         
         // Eşler arası barındırma özellikleri
@@ -25,7 +25,5 @@ namespace YourTurn.Web.Models
         public bool IsPeerHosted { get; set; } = false;
         public DateTime? LastHostHeartbeat { get; set; }
         public bool IsHostOnline { get; set; } = true;
-        // Oyundaki hakemin adı
-        public string? RefereeName { get; set; }
     }
 }

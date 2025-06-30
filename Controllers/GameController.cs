@@ -53,101 +53,25 @@ namespace YourTurn.Web.Controllers
             return View(viewModel);
         }
 
-        // Mevcut oyuncunun sırasını bir sonraki oyuncuya geçirmesini sağlar
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> PassTurn(string code)
+        public async Task<IActionResult> SubmitAnswer(string code, string answer)
         {
             var lobby = _gameService.FindLobby(code);
             if (lobby == null || lobby.GameState == null)
-                return Json(new { success = false, message = "Lobby veya oyun durumu bulunamadı" });
+            {
+                return Json(new { success = false, message = "Lobi veya oyun durumu bulunamadı." });
+            }
 
             var currentPlayerName = HttpContext.Session.GetString("PlayerName");
-            
-            if (lobby.GameState.CurrentTurn != currentPlayerName)
-                return Json(new { success = false, message = "Sıra sizde değil" });
-
-            // Eğer lobide hakem varsa, doğrulama kontrollerini yap
-            if (!string.IsNullOrEmpty(lobby.RefereeName))
+            if (string.IsNullOrEmpty(currentPlayerName))
             {
-                // Sırası olan takımın cevabının hakem tarafından doğrulanıp doğrulanmadığını kontrol et
-                var isTeam1Turn = lobby.GameState.CurrentTurn == lobby.GameState.ActivePlayer1;
-                if (isTeam1Turn && !lobby.GameState.IsTeam1VolunteerAnswerValidated)
-                {
-                    return Json(new { success = false, message = "Hakem cevabınızı doğrulamadan sıranızı geçemezsiniz." });
-                }
-
-                var isTeam2Turn = lobby.GameState.CurrentTurn == lobby.GameState.ActivePlayer2;
-                if (isTeam2Turn && !lobby.GameState.IsTeam2VolunteerAnswerValidated)
-                {
-                    return Json(new { success = false, message = "Hakem cevabınızı doğrulamadan sıranızı geçemezsiniz." });
-                }
-            }
-            
-            // Sıra başarıyla geçtiğinde, bir sonraki tur için her iki takımın da doğrulama durumunu sıfırla.
-            lobby.GameState.IsTeam1VolunteerAnswerValidated = false;
-            lobby.GameState.IsTeam2VolunteerAnswerValidated = false;
-
-            lobby.GameState.IsTimerRunning = false;
-
-            if (lobby.GameState.CurrentTurn == lobby.GameState.ActivePlayer1)
-            {
-                lobby.GameState.CurrentTurn = lobby.GameState.ActivePlayer2;
-            }
-            else
-            {
-                lobby.GameState.CurrentTurn = lobby.GameState.ActivePlayer1;
+                return Json(new { success = false, message = "Oturum bilgisi bulunamadı." });
             }
 
-            // Yeni soru seçerken, daha önce sorulanları hariç tut
-            var excludeIds = lobby.GameState.AskedQuestionIds ?? new List<int>();
-            if (lobby.GameState.CurrentQuestion != null && !excludeIds.Contains(lobby.GameState.CurrentQuestion.Id))
-            {
-                excludeIds.Add(lobby.GameState.CurrentQuestion.Id);
-            }
-            var newQuestion = await _gameService.GetRandomQuestionAsync(lobby.Category, excludeIds);
-            if(newQuestion == null){
-                // Soru kalmadıysa fuse'a bakarak turu bitir
-                string kaybedenTakim = null;
-                string kazananTakim = null;
-                if (lobby.GameState.FusePosition < 0) // Sol'a daha yakınsa
-                {
-                    kaybedenTakim = "Sol";
-                    kazananTakim = "Sağ";
-                    lobby.GameState.Team2Score++;
-                }
-                else if (lobby.GameState.FusePosition > 0) // Sağ'a daha yakınsa
-                {
-                    kaybedenTakim = "Sağ";
-                    kazananTakim = "Sol";
-                    lobby.GameState.Team1Score++;
-                }
-                else // Tam ortadaysa rastgele
-                {
-                    kaybedenTakim = new Random().Next(2) == 0 ? "Sol" : "Sağ";
-                    kazananTakim = kaybedenTakim == "Sol" ? "Sağ" : "Sol";
-                    if (kaybedenTakim == "Sol")
-                        lobby.GameState.Team2Score++;
-                    else
-                        lobby.GameState.Team1Score++;
-                }
-                lobby.GameState.Winner = kaybedenTakim;
-                lobby.GameState.IsGameActive = false;
-                lobby.GameState.IsTimerRunning = false;
-                lobby.GameState.RoundEndMessage = $"Bu round, kategoride başka soru kalmadığı için <strong>{(kazananTakim == "Sol" ? "🔴 Kırmızı Takım" : "🔵 Mavi Takım")}</strong> kazandı (fuse'a en uzak takım)!";
-                await _hubContext.Clients.Group(code).SendAsync("UpdateGame");
-                return Json(new { success = false, message = $"Bu kategoride başka soru kalmadı. Fuse {kaybedenTakim} takımına daha yakın olduğu için o takım turu kaybetti." });
-            }
-            lobby.GameState.CurrentQuestion = newQuestion;
-            lobby.GameState.AskedQuestionIds = excludeIds;
-            lobby.GameState.AskedQuestionIds.Add(newQuestion.Id);
-            lobby.GameState.LastAnswerTime = DateTime.Now;
-            lobby.GameState.LastTurnStartTime = DateTime.Now;
-            lobby.GameState.IsTimerRunning = true;
+            var result = await _gameService.SubmitAnswerAsync(code, currentPlayerName, answer);
 
-            await _hubContext.Clients.Group(code).SendAsync("UpdateGame");
-
-            return Json(new { success = true });
+            return Json(result);
         }
 
         // Bir oyuncunun takımı için gönüllü olmasını sağlar
@@ -253,8 +177,7 @@ namespace YourTurn.Web.Controllers
                 activePlayer2 = lobby.GameState.ActivePlayer2,
                 gameWinner = gameWinner,
                 isGameCompleted = isGameCompleted,
-                question = lobby.GameState.CurrentQuestion.Text,
-                answer = lobby.GameState.CurrentQuestion.Answers.FirstOrDefault(a => a.IsCorrect)?.Text,
+                question = lobby.GameState.CurrentQuestion?.Text,
                 players = lobby.Players.Select(p => new { p.Name, p.Team }).ToList()
             });
         }
@@ -349,75 +272,12 @@ namespace YourTurn.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ResetGame(string code)
         {
-            try
-            {
-                var lobby = _gameService.FindLobby(code);
-                if (lobby == null)
-                    return Json(new { success = false, message = "Lobby bulunamadı" });
-
-                var currentPlayerName = HttpContext.Session.GetString("PlayerName");
-                
-                // Only host can reset the game
-                if (lobby.HostPlayerName != currentPlayerName)
-                    return Json(new { success = false, message = "Sadece host oyunu sıfırlayabilir" });
-
-                // Reset game state
-                lobby.IsGameStarted = false;
-                lobby.GameState = null;
-
-                // Notify all players that game is reset
-                await _hubContext.Clients.Group(code).SendAsync("GameReset");
-
-                return Json(new { success = true, redirectUrl = Url.Action("LobbyRoom", "Lobby", new { code }) });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message });
-            }
-        }
-
-        // Aynı veya yeni kategoriyle yeni bir tur başlatır
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> StartNewRoundWithSameOrNewCategory(string code, string category)
-        {
-            var lobby = _gameService.FindLobby(code);
-            if (lobby == null)
-                return NotFound();
-
-            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
+            var hostPlayerName = HttpContext.Session.GetString("PlayerName");
+            if (string.IsNullOrEmpty(hostPlayerName))
+                return Json(new { success = false, message = "Oturum bulunamadı." });
             
-            // Only host can start a new round with the same or new category
-            if (lobby.HostPlayerName != currentPlayerName)
-                return Forbid();
-
-            // Only allow category change when game is not active
-            if (lobby.GameState?.IsGameActive == true)
-                return Forbid();
-
-            // If category is empty, keep the current one
-            if (!string.IsNullOrEmpty(category))
-            {
-                lobby.Category = category;
-            }
-
-            var team1Volunteer = lobby.GameState.Team1Volunteer;
-            var team2Volunteer = lobby.GameState.Team2Volunteer;
-            
-            lobby.GameState = await _gameService.InitializeNewRoundAsync(
-                lobby.Category, 
-                lobby.GameState.Team1Score, 
-                lobby.GameState.Team2Score,
-                team1Volunteer,
-                team2Volunteer
-            );
-
-            var startingTeam = lobby.GameState.CurrentTurn == team1Volunteer ? "Sol" : "Sağ";
-            TempData["RoundStartMessage"] = $"🎲 Rastgele seçim sonucu {startingTeam} takımı başlıyor!";
-
-            await _hubContext.Clients.Group(code).SendAsync("NewRoundStarted");
-            
-            return RedirectToAction("Game", new { code });
+            await _gameService.ResetGameAsync(code, hostPlayerName);
+            return Json(new { success = true });
         }
 
         // Zamanlayıcıyı durdurur veya başlatır
@@ -426,89 +286,15 @@ namespace YourTurn.Web.Controllers
         public async Task<IActionResult> ToggleTimer(string code)
         {
             var lobby = _gameService.FindLobby(code);
-            if (lobby == null || lobby.GameState == null)
-                return Json(new { success = false, message = "Lobby veya oyun durumu bulunamadı" });
-
-            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
-            if (lobby.RefereeName != currentPlayerName)
-                return Json(new { success = false, message = "Sadece hakem süreyi yönetebilir." });
+            if (lobby == null || lobby.GameState == null || lobby.HostPlayerName != HttpContext.Session.GetString("PlayerName"))
+                return Json(new { success = false, message = "Yetkisiz işlem veya oyun bulunamadı" });
 
             lobby.GameState.IsTimerRunning = !lobby.GameState.IsTimerRunning;
             if (lobby.GameState.IsTimerRunning)
             {
                 lobby.GameState.LastTurnStartTime = DateTime.Now;
             }
-            await _hubContext.Clients.Group(code).SendAsync("UpdateGame");
-            return Json(new { success = true, isTimerRunning = lobby.GameState.IsTimerRunning });
-        }
-
-        // Hakemin sırayı geçmesini sağlar
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> PassTurnByReferee(string code)
-        {
-            var lobby = _gameService.FindLobby(code);
-            if (lobby == null || lobby.GameState == null)
-                return Json(new { success = false, message = "Lobby veya oyun durumu bulunamadı" });
-
-            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
-            if (lobby.RefereeName != currentPlayerName)
-                return Json(new { success = false, message = "Sadece hakem sırayı geçirebilir." });
-
-            // Sırayı değiştir
-            if (lobby.GameState.CurrentTurn == lobby.GameState.ActivePlayer1)
-            {
-                lobby.GameState.CurrentTurn = lobby.GameState.ActivePlayer2;
-            }
-            else
-            {
-                lobby.GameState.CurrentTurn = lobby.GameState.ActivePlayer1;
-            }
-            // Yeni soru getir
-            var newQuestion = await _gameService.GetRandomQuestionAsync(lobby.Category);
-            if(newQuestion == null){
-                return Json(new { success = false, message = "Bu kategoride başka soru bulunamadı." });
-            }
-            lobby.GameState.CurrentQuestion = newQuestion;
-            lobby.GameState.LastAnswerTime = DateTime.Now;
-            lobby.GameState.LastTurnStartTime = DateTime.Now;
-            // Süreyi durdur
-            lobby.GameState.IsTimerRunning = false;
-            // Gönüllü cevap doğrulama flag'lerini sıfırla
-            lobby.GameState.IsTeam1VolunteerAnswerValidated = false;
-            lobby.GameState.IsTeam2VolunteerAnswerValidated = false;
-
-            await _hubContext.Clients.Group(code).SendAsync("UpdateGame");
-            return Json(new { success = true });
-        }
-
-        // Gönüllünün cevabını doğrular
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ValidateAnswer(string code, string team)
-        {
-            var lobby = _gameService.FindLobby(code);
-            if (lobby?.GameState == null) return Json(new { success = false, message = "Oyun bulunamadı." });
-
-            var currentPlayerName = HttpContext.Session.GetString("PlayerName");
-            if (lobby.RefereeName != currentPlayerName)
-            {
-                return Json(new { success = false, message = "Sadece hakem doğrulama yapabilir." });
-            }
-
-            if (team == "Sol")
-            {
-                lobby.GameState.IsTeam1VolunteerAnswerValidated = true;
-            }
-            else if (team == "Sağ")
-            {
-                lobby.GameState.IsTeam2VolunteerAnswerValidated = true;
-            }
-            else
-            {
-                return Json(new { success = false, message = "Geçersiz takım." });
-            }
-
+            
             await _hubContext.Clients.Group(code).SendAsync("UpdateGame");
             return Json(new { success = true });
         }

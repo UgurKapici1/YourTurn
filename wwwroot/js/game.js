@@ -1,6 +1,5 @@
 const lobbyCode = window.lobbyCode;
 const currentPlayerName = window.currentPlayerName;
-const isReferee = window.isReferee;
 const requestVerificationToken = window.requestVerificationToken;
 
 // Check if the page was reloaded due to round end to prevent loops
@@ -14,6 +13,7 @@ const connection = new signalR.HubConnectionBuilder()
     .build();
 
 let gameUpdateInterval;
+let lastKnownTurn = null; // Keep track of whose turn it was
 
 // SignalR Event Listeners
 connection.on("UpdateGame", () => fetchAndUpdateUI());
@@ -112,18 +112,33 @@ function updateUI(state) {
             : '<span class="badge bg-secondary">⏸️ Süre Durdu</span>';
     }
     
-    // Update validation buttons for referee
-    if (isReferee.toLowerCase() === 'true') {
-        const validateSolBtn = document.getElementById('validate-sol');
-        const validateSagBtn = document.getElementById('validate-sag');
-        if (validateSolBtn && validateSagBtn) {
-            validateSolBtn.disabled = state.isTeam1VolunteerAnswerValidated;
-            validateSolBtn.innerHTML = '🔴 Kırmızı Takımı Doğrula';
-            validateSagBtn.disabled = state.isTeam2VolunteerAnswerValidated;
-            validateSagBtn.innerHTML = '🔵 Mavi Takımı Doğrula';
+    // Show/hide answer form based on turn
+    const answerContainer = document.getElementById('answer-form-container');
+    if (answerContainer) {
+        const isMyTurn = state.currentTurn === currentPlayerName;
+        answerContainer.style.display = isMyTurn ? 'block' : 'none';
+        
+        // Turn just changed to this player
+        if (isMyTurn && lastKnownTurn !== state.currentTurn) {
+            // Reset input field
+            const answerInput = document.getElementById('answerInput');
+            if (answerInput) answerInput.value = '';
+
+            // Automatically start speech recognition if supported and not already running
+            if (recognition && !isRecognizing) {
+                toggleSpeechRecognition();
+            }
+        }
+
+        // Turn just changed away from this player, so stop recognition
+        if (!isMyTurn && isRecognizing) {
+            toggleSpeechRecognition(); // This will call recognition.stop()
         }
     }
         
+    // Update the last known turn at the end of the update
+    lastKnownTurn = state.currentTurn;
+
     // If game/round is over, stop polling and reload ONCE to show the final screen.
     if (!state.isGameActive && !roundOverReloaded) {
         if (gameUpdateInterval) clearInterval(gameUpdateInterval);
@@ -136,49 +151,101 @@ function updateUI(state) {
     if (questionText && state.question) {
         questionText.textContent = state.question;
     }
-    // Doğru cevabı güncelle (hakem için)
     const correctAnswerText = document.getElementById('correctAnswerText');
     if (correctAnswerText && state.answer) {
         correctAnswerText.textContent = state.answer;
     }
 }
 
-// Action Functions
-function validateAnswer(team) {
-    fetch('/Game/ValidateAnswer', {
+function checkAnswer() {
+    const answerInput = document.getElementById('answerInput');
+    const answer = answerInput.value;
+
+    // Sunucuya boş istek göndermemek için temel bir kontrol.
+    if (!answer) {
+        return;
+    }
+
+    fetch('/Game/SubmitAnswer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': requestVerificationToken },
-        body: `code=${lobbyCode}&team=${team}`
-    }).catch(err => {
-        console.error(err);
-        alert("Doğrulama sırasında bir hata oluştu.");
-    });
-}
-
-function passTurn() {
-    const btn = document.getElementById('passTurnBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> İşleniyor...';
-
-    fetch('/Game/PassTurn', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': requestVerificationToken },
-        body: `code=${lobbyCode}`
+        body: `code=${lobbyCode}&answer=${encodeURIComponent(answer)}`
     })
     .then(res => res.json())
     .then(data => {
-        if (!data.success) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-arrow-right"></i> Cevapla!';
+        // Sunucudan { success: true, isCorrect: true } geldiğinde,
+        // SignalR zaten arayüzü güncelleyecektir (formu gizleyecek vb.).
+        // isCorrect: false ise, kullanıcı yazmaya devam edebilir, bu yüzden bir şey yapmaya gerek yok.
+        if (!data.success && data.message) {
+             console.error("Hata: " + data.message);
         }
     }).catch(err => {
-        console.error(err);
-        alert("Bir ağ hatası oluştu.");
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-arrow-right"></i> Cevapla!';
+        console.error("Cevap gönderilirken bir ağ hatası oluştu:", err);
     });
 }
 
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let recognition;
+let isRecognizing = false;
+
+if (SpeechRecognition) {
+    recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.lang = 'tr-TR';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    recognition.onresult = (event) => {
+        let transcript = event.results[0][0].transcript;
+        // Sonundaki noktayı kaldır
+        if (transcript.endsWith('.')) {
+            transcript = transcript.slice(0, -1);
+        }
+        const answerInput = document.getElementById('answerInput');
+        answerInput.value = transcript;
+        checkAnswer(); // Check the answer automatically
+    };
+
+    recognition.onend = () => {
+        isRecognizing = false;
+        const speechBtn = document.getElementById('speechBtn');
+        if (speechBtn) {
+            speechBtn.classList.remove('btn-danger');
+            speechBtn.classList.add('btn-outline-secondary');
+            speechBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+        }
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        isRecognizing = false;
+    };
+} else {
+    // Hide the button if the browser doesn't support the API
+    window.addEventListener('DOMContentLoaded', () => {
+        const speechBtn = document.getElementById('speechBtn');
+        if(speechBtn) speechBtn.style.display = 'none';
+    });
+}
+
+function toggleSpeechRecognition() {
+    if (!recognition) return;
+
+    const speechBtn = document.getElementById('speechBtn');
+    if (isRecognizing) {
+        recognition.stop();
+    } else {
+        recognition.start();
+        isRecognizing = true;
+        if (speechBtn) {
+            speechBtn.classList.remove('btn-outline-secondary');
+            speechBtn.classList.add('btn-danger');
+            speechBtn.innerHTML = '<i class="fas fa-microphone-slash"></i> Durdur';
+        }
+    }
+}
+
+// Action Functions
 function resetGame() {
     if (confirm('Oyunu sıfırlayıp lobiye dönmek istediğinizden emin misiniz?')) {
         fetch('/Game/ResetGame', {
