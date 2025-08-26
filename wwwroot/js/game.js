@@ -14,6 +14,8 @@ const connection = new signalR.HubConnectionBuilder()
 
 let gameUpdateInterval;
 let lastKnownTurn = null; // Keep track of whose turn it was
+let hasUserGestureForSpeech = false; // Required by some browsers to allow auto start
+let micPermissionGranted = false; // Track explicit mic permission via getUserMedia
 
 // SignalR Event Listeners
 connection.on("UpdateGame", () => fetchAndUpdateUI());
@@ -125,8 +127,9 @@ function updateUI(state) {
             if (answerInput) answerInput.value = '';
 
             // Automatically start speech recognition if supported and not already running
-            if (recognition && !isRecognizing) {
-                toggleSpeechRecognition();
+            if (recognition && !isRecognizing && hasUserGestureForSpeech) {
+                // Some browsers require a prior user gesture before start()
+                try { recognition.start(); isRecognizing = true; updateSpeechBtnRunning(); } catch(e) { console.warn('Speech start blocked:', e); }
             }
         }
 
@@ -214,6 +217,12 @@ if (SpeechRecognition) {
             speechBtn.classList.add('btn-outline-secondary');
             speechBtn.innerHTML = '<i class="fas fa-microphone"></i>';
         }
+        // If it's still my turn and permission/gesture was given, try to auto-restart (some browsers stop after silence)
+        const isMyTurnIndicator = document.getElementById('answer-form-container');
+        const canAuto = hasUserGestureForSpeech && isMyTurnIndicator && isMyTurnIndicator.style.display !== 'none';
+        if (canAuto) {
+            try { recognition.start(); isRecognizing = true; updateSpeechBtnRunning(); } catch(e) { /* swallow */ }
+        }
     };
 
     recognition.onerror = (event) => {
@@ -225,7 +234,21 @@ if (SpeechRecognition) {
     window.addEventListener('DOMContentLoaded', () => {
         const speechBtn = document.getElementById('speechBtn');
         if(speechBtn) speechBtn.style.display = 'none';
+        const banner = document.createElement('div');
+        banner.className = 'alert alert-warning mt-2';
+        banner.innerText = 'Tarayıcınız sesli tanımayı desteklemiyor. Lütfen Chrome veya destekleyen bir tarayıcı kullanın.';
+        const container = document.getElementById('answer-form-container');
+        if (container) container.appendChild(banner);
     });
+}
+
+function updateSpeechBtnRunning() {
+    const speechBtn = document.getElementById('speechBtn');
+    if (speechBtn) {
+        speechBtn.classList.remove('btn-outline-secondary');
+        speechBtn.classList.add('btn-danger');
+        speechBtn.innerHTML = '<i class="fas fa-microphone-slash"></i> Durdur';
+    }
 }
 
 function toggleSpeechRecognition() {
@@ -235,13 +258,10 @@ function toggleSpeechRecognition() {
     if (isRecognizing) {
         recognition.stop();
     } else {
-        recognition.start();
+        // First manual start establishes the user gesture for restrictive browsers
+        try { recognition.start(); hasUserGestureForSpeech = true; } catch (e) { console.warn('Speech start failed:', e); }
         isRecognizing = true;
-        if (speechBtn) {
-            speechBtn.classList.remove('btn-outline-secondary');
-            speechBtn.classList.add('btn-danger');
-            speechBtn.innerHTML = '<i class="fas fa-microphone-slash"></i> Durdur';
-        }
+        updateSpeechBtnRunning();
     }
 }
 
@@ -291,9 +311,61 @@ connection.start()
             fetchAndUpdateUI();
             gameUpdateInterval = setInterval(fetchAndUpdateUI, 50);
         }
+        // Warn if not secure context (required by some browsers for speech)
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+            console.warn('Speech recognition may require HTTPS on this browser.');
+        }
     })
     .catch(err => console.error("SignalR Connection Error: ", err));
     
 window.addEventListener('beforeunload', () => {
     if (gameUpdateInterval) clearInterval(gameUpdateInterval);
 }); 
+
+// Establish a broad user-gesture detector so players don't need to press the mic button.
+window.addEventListener('DOMContentLoaded', () => {
+    // Best-effort: try to proactively request mic permission on load (HTTPS recommended)
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+            try { stream.getTracks().forEach(t => t.stop()); } catch(_) {}
+            micPermissionGranted = true;
+            hasUserGestureForSpeech = true; // Many browsers consider permission prompt interaction sufficient
+            // If already my turn, start immediately
+            try {
+                const container = document.getElementById('answer-form-container');
+                const isMyTurnNow = container && container.style.display !== 'none';
+                if (recognition && isMyTurnNow && !isRecognizing) {
+                    recognition.start();
+                    isRecognizing = true;
+                    updateSpeechBtnRunning();
+                }
+            } catch (e) { /* ignore */ }
+        }).catch(err => {
+            // Permission prompt denied or blocked; fall back to user gesture listeners
+            console.warn('Microphone permission not granted on load:', err);
+        });
+    }
+
+    const markGestureAndMaybeStart = () => {
+        if (!hasUserGestureForSpeech) {
+            hasUserGestureForSpeech = true;
+            // If it's already my turn and recognition exists, try to start immediately
+            try {
+                const container = document.getElementById('answer-form-container');
+                const isMyTurnNow = container && container.style.display !== 'none';
+                if (recognition && isMyTurnNow && !isRecognizing) {
+                    recognition.start();
+                    isRecognizing = true;
+                    updateSpeechBtnRunning();
+                }
+            } catch (e) { /* ignore */ }
+        }
+        // Remove listeners after first gesture to avoid overhead
+        window.removeEventListener('click', markGestureAndMaybeStart, true);
+        window.removeEventListener('touchstart', markGestureAndMaybeStart, true);
+        window.removeEventListener('keydown', markGestureAndMaybeStart, true);
+    };
+    window.addEventListener('click', markGestureAndMaybeStart, true);
+    window.addEventListener('touchstart', markGestureAndMaybeStart, true);
+    window.addEventListener('keydown', markGestureAndMaybeStart, true);
+});

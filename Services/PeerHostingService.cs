@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using YourTurn.Web.Hubs;
 using YourTurn.Web.Models;
-using YourTurn.Web.Stores;
+using YourTurn.Web.Interfaces;
 
 namespace YourTurn.Web.Services
 {
@@ -49,9 +49,10 @@ namespace YourTurn.Web.Services
         private async Task CheckPeerHostsAsync()
         {
             using var scope = _serviceProvider.CreateScope();
-            var gameService = scope.ServiceProvider.GetRequiredService<GameService>();
+            var gameService = scope.ServiceProvider.GetRequiredService<IGameService>();
+            var lobbyStore = scope.ServiceProvider.GetRequiredService<ILobbyStore>();
 
-            var peerHostedLobbies = LobbyStore.ActiveLobbies.Where(l => l.IsPeerHosted).ToList();
+            var peerHostedLobbies = lobbyStore.GetActiveLobbies().Where(l => l.IsPeerHosted).ToList();
 
             foreach (var lobby in peerHostedLobbies)
             {

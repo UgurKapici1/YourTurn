@@ -1,5 +1,8 @@
 using YourTurn.Web.Hubs;
 using YourTurn.Web.Services;
+using YourTurn.Web.Interfaces;
+using YourTurn.Web.Repositories;
+using YourTurn.Web.Stores;
 using YourTurn.Web.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -30,8 +33,12 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 builder.Services.AddAuthorization();
 
-// GameService'i DI konteynerine ekle
-builder.Services.AddScoped<GameService>();
+// SOLID: Abstraction-first DI kayıtları
+builder.Services.AddScoped<IGameRepository, EfGameRepository>();
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<ISettingsService, SettingsService>();
+builder.Services.AddScoped<IGameService, GameService>();
+builder.Services.AddSingleton<ILobbyStore, InMemoryLobbyStore>();
 
 // Arka plan servisleri ekleniyor
 builder.Services.AddHostedService<PeerHostingService>();

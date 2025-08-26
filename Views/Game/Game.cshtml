@@ -1,4 +1,4 @@
-@inject YourTurn.Web.Services.GameService _gameService
+@* Service injection removed; use ViewModel flags instead *@
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
 @model YourTurn.Web.Controllers.GameController.GameViewModel
 
@@ -91,16 +91,11 @@
     {
         <div class="row mb-4">
             <div class="col-12 text-center">
-                @{
-                var isGameCompleted = _gameService.HasWinningTeam(gameState.Team1Score, gameState.Team2Score);
-                var gameWinner = _gameService.GetWinningTeam(gameState.Team1Score, gameState.Team2Score);
-                }
-                
-                @if (isGameCompleted)
+                @if (Model.IsGameCompleted)
                 {
                     <div class="alert alert-success">
                         <h4>🏆 Oyun Bitti!</h4>
-                    <p><strong>@(gameWinner == "Sol" ? "🔴 Kırmızı Takım" : "🔵 Mavi Takım")</strong> oyunu kazandı!</p>
+                    <p><strong>@(Model.GameWinner == "Sol" ? "🔴 Kırmızı Takım" : "🔵 Mavi Takım")</strong> oyunu kazandı!</p>
                     </div>
                 @if (Model.Lobby.HostPlayerName == currentPlayerName)
                     {
@@ -196,21 +191,18 @@
     </div>
 
     <!-- Kontrol Butonları -->
-    @if (gameState?.IsGameActive == true && isActivePlayer)
-    {
-        <div id="answer-form-container" class="row mb-4" style="@(isMyTurn ? "" : "display: none;")">
-            <div class="col-12 text-center">
-                <form id="answerForm" class="d-flex justify-content-center align-items-center" onsubmit="event.preventDefault();">
-                    <div class="input-group">
-                        <input type="text" id="answerInput" class="form-control form-control-lg" placeholder="Cevabınızı yazın..." oninput="checkAnswer()" autocomplete="off">
-                        <button class="btn btn-outline-secondary" type="button" id="speechBtn" onclick="toggleSpeechRecognition()">
-                            <i class="fas fa-microphone"></i>
-                        </button>
-                    </div>
-                </form>
-            </div>
+    <div id="answer-form-container" class="row mb-4" style="display: none;">
+        <div class="col-12 text-center">
+            <form id="answerForm" class="d-flex justify-content-center align-items-center" onsubmit="event.preventDefault();">
+                <div class="input-group">
+                    <input type="text" id="answerInput" class="form-control form-control-lg" placeholder="Cevabınızı yazın..." oninput="checkAnswer()" autocomplete="off">
+                    <button class="btn btn-outline-secondary" type="button" id="speechBtn" onclick="toggleSpeechRecognition()">
+                        <i class="fas fa-microphone"></i>
+                    </button>
+                </div>
+            </form>
         </div>
-    }
+    </div>
 
     <!-- Oyuncu Listeleri -->
     <div class="row mt-4">

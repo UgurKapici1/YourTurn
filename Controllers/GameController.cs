@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using YourTurn.Web.Hubs;
 using YourTurn.Web.Models;
 using YourTurn.Web.Services;
+using YourTurn.Web.Interfaces;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.EntityFrameworkCore;
@@ -14,12 +15,12 @@ namespace YourTurn.Web.Controllers
     public class GameController : Controller
     {
         private readonly IHubContext<GameHub> _hubContext;
-        private readonly GameService _gameService;
+        private readonly IGameService _gameService;
         private readonly IAntiforgery _antiforgery;
         private readonly YourTurnDbContext _context;
 
         // Gerekli servisleri enjekte eder
-        public GameController(IHubContext<GameHub> hubContext, GameService gameService, IAntiforgery antiforgery, YourTurnDbContext context)
+        public GameController(IHubContext<GameHub> hubContext, IGameService gameService, IAntiforgery antiforgery, YourTurnDbContext context)
         {
             _hubContext = hubContext;
             _gameService = gameService;
@@ -46,7 +47,9 @@ namespace YourTurn.Web.Controllers
             var viewModel = new GameViewModel
             {
                 Lobby = lobby,
-                Categories = await _context.Categories.OrderBy(c => c.Name).ToListAsync()
+                Categories = await _context.Categories.OrderBy(c => c.Name).ToListAsync(),
+                IsGameCompleted = lobby.GameState != null && _gameService.GetWinningTeam(lobby.GameState.Team1Score, lobby.GameState.Team2Score) != null,
+                GameWinner = lobby.GameState != null ? _gameService.GetWinningTeam(lobby.GameState.Team1Score, lobby.GameState.Team2Score) : null
             };
 
             ViewBag.CurrentPlayerName = HttpContext.Session.GetString("PlayerName");
@@ -80,32 +83,15 @@ namespace YourTurn.Web.Controllers
         public async Task<IActionResult> VolunteerForTeam(string code, string team)
         {
             var lobby = _gameService.FindLobby(code);
-            if (lobby == null || lobby.GameState == null)
-                return Json(new { success = false, message = "Lobby veya oyun durumu bulunamadı" });
+            if (lobby == null)
+                return Json(new { success = false, message = "Lobby bulunamadı" });
 
             var currentPlayerName = HttpContext.Session.GetString("PlayerName");
             var player = lobby.Players.FirstOrDefault(p => p.Name == currentPlayerName);
             
-            if (player == null || player.Team != team)
-                return Json(new { success = false, message = "Geçersiz oyuncu veya takım" });
-
-            if (team == "Sol")
-            {
-                lobby.GameState.Team1Volunteer = currentPlayerName;
-            }
-            else if (team == "Sağ")
-            {
-                lobby.GameState.Team2Volunteer = currentPlayerName;
-            }
-
-            if (!string.IsNullOrEmpty(lobby.GameState.Team1Volunteer) && 
-                !string.IsNullOrEmpty(lobby.GameState.Team2Volunteer))
-            {
-                lobby.GameState.ActivePlayer1 = lobby.GameState.Team1Volunteer;
-                lobby.GameState.ActivePlayer2 = lobby.GameState.Team2Volunteer;
-                lobby.GameState.CurrentTurn = lobby.GameState.ActivePlayer1;
-                lobby.GameState.IsWaitingForVolunteers = false;
-            }
+            var result = await _gameService.VolunteerForTeamAsync(lobby, currentPlayerName, team);
+            if (!result.success)
+                return Json(new { success = false, message = result.message });
 
             await _hubContext.Clients.Group(code).SendAsync("UpdateGame");
 
@@ -117,68 +103,28 @@ namespace YourTurn.Web.Controllers
         public IActionResult GetGameState(string code)
         {
             var lobby = _gameService.FindLobby(code);
-            if (lobby == null || lobby.GameState == null)
+            if (lobby == null)
                 return Json(new { success = false });
 
-            if (lobby.GameState.IsWaitingForVolunteers)
-            {
-                return Json(new {
-                    success = true,
-                    isWaitingForVolunteers = true,
-                    team1Volunteer = lobby.GameState.Team1Volunteer,
-                    team2Volunteer = lobby.GameState.Team2Volunteer
-                });
-            }
-
-            if (lobby.GameState.IsTimerRunning && lobby.GameState.LastTurnStartTime.HasValue)
-            {
-                var elapsedSeconds = (DateTime.Now - lobby.GameState.LastTurnStartTime.Value).TotalSeconds;
-                var movement = elapsedSeconds * lobby.GameState.TimerSpeed;
-
-                if (lobby.GameState.CurrentTurn == lobby.GameState.ActivePlayer1)
-                {
-                    lobby.GameState.FusePosition = Math.Max(-100, lobby.GameState.FusePosition - movement);
-                }
-                else
-                {
-                    lobby.GameState.FusePosition = Math.Min(100, lobby.GameState.FusePosition + movement);
-                }
-
-                if (lobby.GameState.FusePosition <= -100)
-                {
-                    lobby.GameState.Winner = "Sağ";
-                    lobby.GameState.Team2Score++;
-                    lobby.GameState.IsGameActive = false;
-                    lobby.GameState.IsTimerRunning = false;
-                }
-                else if (lobby.GameState.FusePosition >= 100)
-                {
-                    lobby.GameState.Winner = "Sol";
-                    lobby.GameState.Team1Score++;
-                    lobby.GameState.IsGameActive = false;
-                    lobby.GameState.IsTimerRunning = false;
-                }
-            }
-            
-            var gameWinner = _gameService.GetWinningTeam(lobby.GameState.Team1Score, lobby.GameState.Team2Score);
-            var isGameCompleted = gameWinner != null;
-
+            var dto = _gameService.BuildAndAdvanceGameState(lobby);
             return Json(new {
-                success = true,
-                isWaitingForVolunteers = false,
-                fusePosition = lobby.GameState.FusePosition,
-                isTimerRunning = lobby.GameState.IsTimerRunning,
-                currentTurn = lobby.GameState.CurrentTurn,
-                isGameActive = lobby.GameState.IsGameActive,
-                winner = lobby.GameState.Winner,
-                team1Score = lobby.GameState.Team1Score,
-                team2Score = lobby.GameState.Team2Score,
-                activePlayer1 = lobby.GameState.ActivePlayer1,
-                activePlayer2 = lobby.GameState.ActivePlayer2,
-                gameWinner = gameWinner,
-                isGameCompleted = isGameCompleted,
-                question = lobby.GameState.CurrentQuestion?.Text,
-                players = lobby.Players.Select(p => new { p.Name, p.Team }).ToList()
+                success = dto.Success,
+                isWaitingForVolunteers = dto.IsWaitingForVolunteers,
+                team1Volunteer = dto.Team1Volunteer,
+                team2Volunteer = dto.Team2Volunteer,
+                fusePosition = dto.FusePosition,
+                isTimerRunning = dto.IsTimerRunning,
+                currentTurn = dto.CurrentTurn,
+                isGameActive = dto.IsGameActive,
+                winner = dto.Winner,
+                team1Score = dto.Team1Score,
+                team2Score = dto.Team2Score,
+                activePlayer1 = dto.ActivePlayer1,
+                activePlayer2 = dto.ActivePlayer2,
+                gameWinner = dto.GameWinner,
+                isGameCompleted = dto.IsGameCompleted,
+                question = dto.Question,
+                players = dto.Players
             });
         }
 
@@ -303,6 +249,8 @@ namespace YourTurn.Web.Controllers
         {
             public Lobby Lobby { get; set; }
             public List<Category> Categories { get; set; } = new List<Category>();
+            public bool IsGameCompleted { get; set; }
+            public string? GameWinner { get; set; }
         }
     }
 }

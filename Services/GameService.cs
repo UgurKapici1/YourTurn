@@ -1,7 +1,8 @@
 using YourTurn.Web.Models;
 using YourTurn.Web.Stores;
-using YourTurn.Web.Data;
-using Microsoft.EntityFrameworkCore;
+using YourTurn.Web.Interfaces;
+using YourTurn.Web.Models.Dto;
+using YourTurn.Web.Interfaces;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
 using YourTurn.Web.Hubs;
@@ -9,28 +10,32 @@ using YourTurn.Web.Hubs;
 namespace YourTurn.Web.Services
 {
     // Oyunla ilgili temel mantığı ve yardımcı fonksiyonları içeren servis
-    public class GameService
+    public class GameService : IGameService
     {
-        private readonly YourTurnDbContext _context;
+        private readonly IGameRepository _gameRepository;
+        private readonly ISettingsService _settingsService;
         private readonly IHubContext<GameHub> _hubContext;
-        private const int HOST_TIMEOUT_SECONDS = 30; // Ana bilgisayarın sinyal gönderme zaman aşımı
+        private readonly ILobbyStore _lobbyStore;
+        private const int HOST_TIMEOUT_SECONDS = GameConstants.HostTimeoutSeconds; // Ana bilgisayarın sinyal gönderme zaman aşımı
 
-        public GameService(YourTurnDbContext context, IHubContext<GameHub> hubContext)
+        public GameService(IGameRepository gameRepository, ISettingsService settingsService, IHubContext<GameHub> hubContext, ILobbyStore lobbyStore)
         {
-            _context = context;
+            _gameRepository = gameRepository;
+            _settingsService = settingsService;
             _hubContext = hubContext;
+            _lobbyStore = lobbyStore;
         }
 
         // Bir lobiyi koduna göre bulur
         public Lobby? FindLobby(string code)
         {
-            return LobbyStore.ActiveLobbies.FirstOrDefault(l => l.LobbyCode == code);
+            return _lobbyStore.GetActiveLobbies().FirstOrDefault(l => l.LobbyCode == code);
         }
 
         // Bir lobiyi koduna göre (büyük/küçük harf duyarsız) bulur
         public Lobby? FindLobbyIgnoreCase(string code)
         {
-            return LobbyStore.ActiveLobbies.FirstOrDefault(l => l.LobbyCode.Equals(code, StringComparison.OrdinalIgnoreCase));
+            return _lobbyStore.GetActiveLobbies().FirstOrDefault(l => l.LobbyCode.Equals(code, StringComparison.OrdinalIgnoreCase));
         }
 
         // Verilen isimle yeni bir oyuncu oluşturur
@@ -56,7 +61,7 @@ namespace YourTurn.Web.Services
         // Tüm lobiler için ana bilgisayar çevrimiçi durumunu günceller
         public async Task UpdateHostStatusesAsync()
         {
-            foreach (var lobby in LobbyStore.ActiveLobbies.Where(l => l.IsPeerHosted))
+            foreach (var lobby in _lobbyStore.GetActiveLobbies().Where(l => l.IsPeerHosted))
             {
                 lobby.IsHostOnline = await IsPeerHostOnlineAsync(lobby);
             }
@@ -65,10 +70,7 @@ namespace YourTurn.Web.Services
         // Belirtilen kategoriden rastgele bir soru döndürür
         public async Task<Question?> GetRandomQuestionAsync(string categoryName, List<int>? excludeQuestionIds = null)
         {
-            var category = await _context.Categories
-                .Include(c => c.Questions)
-                .ThenInclude(q => q.Answers)
-                .FirstOrDefaultAsync(c => c.Name == categoryName);
+            var category = await _gameRepository.GetCategoryWithQuestionsAsync(categoryName);
 
             if (category == null || !category.Questions.Any())
             {
@@ -93,15 +95,13 @@ namespace YourTurn.Web.Services
         // Dinamik olarak kazanma skorunu getirir
         public int GetWinningScore()
         {
-            var setting = _context.AdminSettings.FirstOrDefault(s => s.SettingKey == "WinningScore");
-            return setting != null && int.TryParse(setting.SettingValue, out var value) ? value : 5;
+            return _settingsService.GetWinningScore();
         }
 
         // Dinamik olarak timer hızını getirir
         public double GetTimerSpeed()
         {
-            var setting = _context.AdminSettings.FirstOrDefault(s => s.SettingKey == "TimerSpeed");
-            return setting != null && double.TryParse(setting.SettingValue, out var value) ? value : 0.2;
+            return _settingsService.GetTimerSpeed();
         }
 
         // Bir lobi için yeni bir oyun durumu başlatır
@@ -166,9 +166,9 @@ namespace YourTurn.Web.Services
         {
             int winningScore = GetWinningScore();
             if (team1Score >= winningScore)
-                return "Sol";
+                return GameConstants.TeamLeft;
             if (team2Score >= winningScore)
-                return "Sağ";
+                return GameConstants.TeamRight;
             return null;
         }
 
@@ -186,8 +186,8 @@ namespace YourTurn.Web.Services
                 return (false, "Oyunu başlatmak için önce bir kategori seçmelisiniz!");
             }
 
-            var team1Count = lobby.Players.Count(p => p.Team == "Sol");
-            var team2Count = lobby.Players.Count(p => p.Team == "Sağ");
+            var team1Count = lobby.Players.Count(p => p.Team == GameConstants.TeamLeft);
+            var team2Count = lobby.Players.Count(p => p.Team == GameConstants.TeamRight);
 
             if (team1Count == 0 || team2Count == 0)
             {
@@ -232,15 +232,13 @@ namespace YourTurn.Web.Services
                 // Turnu kimin pasladığına göre fitili hareket ettir
                 if (lobby.GameState.CurrentTurn == lobby.GameState.ActivePlayer1)
                 {
-                    // Kırmızı takım doğru cevap verdi, fitil maviye doğru ilerler.
-                    lobby.GameState.FusePosition += 25; 
+                    lobby.GameState.FusePosition += GameConstants.CorrectAnswerStep; 
                 }
                 else
                 {
-                    // Mavi takım doğru cevap verdi, fitil kırmızıya doğru ilerler.
-                    lobby.GameState.FusePosition -= 25;
+                    lobby.GameState.FusePosition -= GameConstants.CorrectAnswerStep;
                 }
-                lobby.GameState.FusePosition = Math.Clamp(lobby.GameState.FusePosition, -100, 100);
+                lobby.GameState.FusePosition = Math.Clamp(lobby.GameState.FusePosition, GameConstants.FuseMin, GameConstants.FuseMax);
 
 
                 // Sıradaki oyuncuya geç
@@ -261,10 +259,10 @@ namespace YourTurn.Web.Services
                     // Kategoriye ait soru kalmadı, round biter
                     string kazananTakim;
                     if (lobby.GameState.FusePosition < 0) { // Sol'a daha yakınsa, Sağ kazanır
-                        kazananTakim = "Sağ";
+                        kazananTakim = GameConstants.TeamRight;
                         lobby.GameState.Team2Score++;
                     } else { // Sağ'a daha yakınsa veya ortadaysa, Sol kazanır
-                        kazananTakim = "Sol";
+                        kazananTakim = GameConstants.TeamLeft;
                         lobby.GameState.Team1Score++;
                     }
                     lobby.GameState.Winner = kazananTakim;
@@ -300,6 +298,138 @@ namespace YourTurn.Web.Services
             lobby.GameState = null;
 
             await _hubContext.Clients.Group(code).SendAsync("GameReset");
+        }
+
+        // Controller'daki GetGameState mantığını kapsüller
+        public GameStateDto BuildAndAdvanceGameState(Lobby lobby)
+        {
+            if (lobby.GameState == null)
+            {
+                return new GameStateDto { Success = false };
+            }
+
+            var gs = lobby.GameState;
+
+            if (gs.IsWaitingForVolunteers)
+            {
+                return new GameStateDto
+                {
+                    Success = true,
+                    IsWaitingForVolunteers = true,
+                    Team1Volunteer = gs.Team1Volunteer,
+                    Team2Volunteer = gs.Team2Volunteer
+                };
+            }
+
+            if (gs.IsTimerRunning && gs.LastTurnStartTime.HasValue)
+            {
+                var elapsedSeconds = (DateTime.Now - gs.LastTurnStartTime.Value).TotalSeconds;
+                var movement = elapsedSeconds * gs.TimerSpeed;
+
+                if (gs.CurrentTurn == gs.ActivePlayer1)
+                {
+                    gs.FusePosition = Math.Max(GameConstants.FuseMin, gs.FusePosition - movement);
+                }
+                else
+                {
+                    gs.FusePosition = Math.Min(GameConstants.FuseMax, gs.FusePosition + movement);
+                }
+
+                if (gs.FusePosition <= GameConstants.FuseMin)
+                {
+                    gs.Winner = GameConstants.TeamRight;
+                    gs.Team2Score++;
+                    gs.IsGameActive = false;
+                    gs.IsTimerRunning = false;
+                }
+                else if (gs.FusePosition >= GameConstants.FuseMax)
+                {
+                    gs.Winner = GameConstants.TeamLeft;
+                    gs.Team1Score++;
+                    gs.IsGameActive = false;
+                    gs.IsTimerRunning = false;
+                }
+            }
+
+            var gameWinner = GetWinningTeam(gs.Team1Score, gs.Team2Score);
+            var isGameCompleted = gameWinner != null;
+
+            var dto = new GameStateDto
+            {
+                Success = true,
+                IsWaitingForVolunteers = false,
+                FusePosition = gs.FusePosition,
+                IsTimerRunning = gs.IsTimerRunning,
+                CurrentTurn = gs.CurrentTurn,
+                IsGameActive = gs.IsGameActive,
+                Winner = gs.Winner,
+                Team1Score = gs.Team1Score,
+                Team2Score = gs.Team2Score,
+                ActivePlayer1 = gs.ActivePlayer1,
+                ActivePlayer2 = gs.ActivePlayer2,
+                GameWinner = gameWinner,
+                IsGameCompleted = isGameCompleted,
+                Question = gs.CurrentQuestion?.Text
+            };
+
+            dto.Players = lobby.Players.Select(p => new PlayerDto { Name = p.Name, Team = p.Team }).ToList();
+
+            return dto;
+        }
+
+        public Task<(bool success, string? message)> VolunteerForTeamAsync(Lobby lobby, string currentPlayerName, string team)
+        {
+            if (lobby.IsGameStarted)
+                return Task.FromResult((false, "Oyun başladıktan sonra gönüllü değiştirilemez."));
+
+            var player = lobby.Players.FirstOrDefault(p => p.Name == currentPlayerName);
+            if (player == null || player.Team != team)
+                return Task.FromResult((false, "Bu takım için gönüllü olamazsınız."));
+
+            lobby.GameState ??= new GameState();
+
+            if (team == "Sol")
+            {
+                if (!string.IsNullOrEmpty(lobby.GameState.Team1Volunteer))
+                    return Task.FromResult((false, "Bu takımda zaten gönüllü var."));
+                lobby.GameState.Team1Volunteer = currentPlayerName;
+            }
+            else if (team == "Sağ")
+            {
+                if (!string.IsNullOrEmpty(lobby.GameState.Team2Volunteer))
+                    return Task.FromResult((false, "Bu takımda zaten gönüllü var."));
+                lobby.GameState.Team2Volunteer = currentPlayerName;
+            }
+            else
+            {
+                return Task.FromResult((false, "Geçersiz takım."));
+            }
+
+            return Task.FromResult((true, (string?)null));
+        }
+
+        public Task<(bool success, string? message)> WithdrawVolunteerAsync(Lobby lobby, string currentPlayerName, string team)
+        {
+            if (lobby.IsGameStarted)
+                return Task.FromResult((false, "Oyun başladıktan sonra gönüllü geri çekilemez."));
+
+            if (lobby.GameState == null)
+                return Task.FromResult((true, (string?)null));
+
+            if (team == "Sol" && lobby.GameState.Team1Volunteer == currentPlayerName)
+            {
+                lobby.GameState.Team1Volunteer = null;
+            }
+            else if (team == "Sağ" && lobby.GameState.Team2Volunteer == currentPlayerName)
+            {
+                lobby.GameState.Team2Volunteer = null;
+            }
+            else
+            {
+                return Task.FromResult((false, "Bu takımdan gönüllülüğünüzü geri çekemezsiniz."));
+            }
+
+            return Task.FromResult((true, (string?)null));
         }
     }
 } 

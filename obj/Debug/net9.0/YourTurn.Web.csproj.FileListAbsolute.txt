@@ -192,4 +192,9 @@ C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\refint\YourTurn.Web.dll
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.pdb
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.genruntimeconfig.cache
 C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\ref\YourTurn.Web.dll
-C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\zxlsama5e6-hvwmo7aln8.gz
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\Microsoft.OpenApi.dll
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\Swashbuckle.AspNetCore.Swagger.dll
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerGen.dll
+C:\Users\pazar\YourTurn.Web\bin\Debug\net9.0\Swashbuckle.AspNetCore.SwaggerUI.dll
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\YourTurn.Web.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\pazar\YourTurn.Web\obj\Debug\net9.0\compressed\zxlsama5e6-2dwr5kwujg.gz

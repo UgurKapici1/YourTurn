@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using YourTurn.Web.Data;
 using YourTurn.Web.Models;
 using YourTurn.Web.Stores;
+using YourTurn.Web.Interfaces;
 using BCrypt.Net;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
@@ -17,12 +18,14 @@ namespace YourTurn.Web.Controllers
     {
         private readonly YourTurnDbContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILobbyStore _lobbyStore;
 
         // Gerekli servisleri enjekte eder
-        public AdminController(YourTurnDbContext context, IHttpContextAccessor httpContextAccessor)
+        public AdminController(YourTurnDbContext context, IHttpContextAccessor httpContextAccessor, ILobbyStore lobbyStore)
         {
             _context = context;
             _httpContextAccessor = httpContextAccessor;
+            _lobbyStore = lobbyStore;
         }
 
         // GET: /admin için varsayılan rota
@@ -111,15 +114,15 @@ namespace YourTurn.Web.Controllers
         public async Task<IActionResult> Dashboard()
         {
             // Get active lobbies and players from in-memory store
-            var activeLobbies = LobbyStore.GetActiveLobbies();
-            var activePlayers = LobbyStore.PlayerToConnections.Keys;
+            var activeLobbies = _lobbyStore.GetActiveLobbies();
+            var activePlayers = _lobbyStore.GetActivePlayers();
 
             var dashboardData = new AdminDashboardViewModel
             {
                 TotalPlayers = await _context.PlayerStats.CountAsync(),
                 TotalLobbies = await _context.LobbyHistories.CountAsync(),
                 ActiveLobbies = activeLobbies.Count,
-                ActivePlayers = activePlayers.Count,
+                ActivePlayers = activePlayers.Count(),
                 RecentLogs = await _context.AdminLogs
                     .Include(l => l.Admin)
                     .OrderByDescending(l => l.CreatedAt)
@@ -137,13 +140,13 @@ namespace YourTurn.Web.Controllers
         public IActionResult DashboardData()
         {
             // Get active lobbies and players from in-memory store
-            var activeLobbies = LobbyStore.GetActiveLobbies();
-            var activePlayers = LobbyStore.PlayerToConnections.Keys;
+            var activeLobbies = _lobbyStore.GetActiveLobbies();
+            var activePlayers = _lobbyStore.GetActivePlayers();
 
             var dashboardData = new
             {
                 activeLobbies = activeLobbies.Count,
-                activePlayers = activePlayers.Count,
+                activePlayers = activePlayers.Count(),
                 currentActiveLobbies = activeLobbies.Select(l => new
                 {
                     lobbyCode = l.LobbyCode,
@@ -267,7 +270,7 @@ namespace YourTurn.Web.Controllers
         {
             var viewModel = new AdminPlayersViewModel
             {
-                ActivePlayers = LobbyStore.PlayerToConnections.Keys.ToList(),
+                ActivePlayers = _lobbyStore.GetActivePlayers().ToList(),
                 DatabasePlayers = await _context.PlayerStats.OrderByDescending(p => p.LastSeenAt).ToListAsync()
             };
             return View(viewModel);
@@ -279,7 +282,7 @@ namespace YourTurn.Web.Controllers
         {
             var viewModel = new AdminLobbiesViewModel
             {
-                ActiveLobbies = LobbyStore.GetActiveLobbies(),
+                ActiveLobbies = _lobbyStore.GetActiveLobbies(),
                 DatabaseLobbies = await _context.LobbyHistories.OrderByDescending(l => l.CreatedAt).ToListAsync()
             };
             return View(viewModel);

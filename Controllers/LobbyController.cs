@@ -5,7 +5,9 @@ using YourTurn.Web.Data;
 using YourTurn.Web.Hubs;
 using YourTurn.Web.Models;
 using YourTurn.Web.Services;
+using YourTurn.Web.Interfaces;
 using YourTurn.Web.Stores;
+using YourTurn.Web.Interfaces;
 
 namespace YourTurn.Web.Controllers
 {
@@ -13,15 +15,17 @@ namespace YourTurn.Web.Controllers
     public class LobbyController : Controller
     {
         private readonly IHubContext<LobbyHub> _hubContext;
-        private readonly GameService _gameService;
+        private readonly IGameService _gameService;
         private readonly YourTurnDbContext _context;
+        private readonly ILobbyStore _lobbyStore;
 
         // Gerekli servisleri enjekte eder
-        public LobbyController(IHubContext<LobbyHub> hubContext, GameService gameService, YourTurnDbContext context)
+        public LobbyController(IHubContext<LobbyHub> hubContext, IGameService gameService, YourTurnDbContext context, ILobbyStore lobbyStore)
         {
             _hubContext = hubContext;
             _gameService = gameService;
             _context = context;
+            _lobbyStore = lobbyStore;
         }
 
         // Mevcut oyuncuyla yeni bir lobi oluşturur ve ana bilgisayar olarak ayarlar
@@ -44,7 +48,7 @@ namespace YourTurn.Web.Controllers
             newLobby.LastHostHeartbeat = DateTime.Now;
             newLobby.IsHostOnline = true;
 
-            LobbyStore.ActiveLobbies.Add(newLobby);
+            _lobbyStore.AddLobby(newLobby);
             HttpContext.Session.SetString("PlayerName", playerName);
 
             // Notify clients about peer hosting
@@ -226,13 +230,13 @@ namespace YourTurn.Web.Controllers
                     if (lobby.Players.Count == 0)
                     {
                         // No players left, remove the lobby
-                        LobbyStore.ActiveLobbies.Remove(lobby);
+                        _lobbyStore.RemoveLobby(lobby);
                         await _hubContext.Clients.Group(code).SendAsync("LobbyClosed", "Tüm oyuncular ayrıldığı için oda kapatıldı.");
                     }
                     else if (isHostLeaving)
                     {
                         // Host is leaving, close the lobby and notify all players
-                        LobbyStore.ActiveLobbies.Remove(lobby);
+                        _lobbyStore.RemoveLobby(lobby);
                         await _hubContext.Clients.Group(code).SendAsync("LobbyClosed", "Host lobiden ayrıldığı için oda kapatıldı.");
                     }
                     else
@@ -295,47 +299,13 @@ namespace YourTurn.Web.Controllers
         public async Task<IActionResult> VolunteerForTeam([FromBody] VolunteerRequest request)
         {
             var lobby = _gameService.FindLobby(request.code);
-            if (lobby == null || lobby.IsGameStarted)
+            if (lobby == null)
                 return NotFound();
-            
+
             var currentPlayerName = HttpContext.Session.GetString("PlayerName");
-            var player = lobby.Players.FirstOrDefault(p => p.Name == currentPlayerName);
-            if (player == null || player.Team != request.team)
-            {
-                return Forbid("Bu takım için gönüllü olamazsınız.");
-            }
-
-            if (lobby.GameState == null)
-            {
-                lobby.GameState = new GameState();
-            }
-
-            if (request.team == "Sol")
-            {
-                if (string.IsNullOrEmpty(lobby.GameState.Team1Volunteer))
-                {
-                    lobby.GameState.Team1Volunteer = currentPlayerName;
-                }
-                else
-                {
-                    return BadRequest(new { message = "Bu takımda zaten gönüllü var." });
-                }
-            }
-            else if (request.team == "Sağ")
-            {
-                if (string.IsNullOrEmpty(lobby.GameState.Team2Volunteer))
-                {
-                    lobby.GameState.Team2Volunteer = currentPlayerName;
-                }
-                else
-                {
-                    return BadRequest(new { message = "Bu takımda zaten gönüllü var." });
-                }
-            }
-            else
-            {
-                return BadRequest(new { message = "Geçersiz takım." });
-            }
+            var result = await _gameService.VolunteerForTeamAsync(lobby, currentPlayerName, request.team);
+            if (!result.success)
+                return BadRequest(new { message = result.message });
 
             await _hubContext.Clients.Group(request.code).SendAsync("UpdateLobby");
             return Ok();
@@ -346,24 +316,13 @@ namespace YourTurn.Web.Controllers
         public async Task<IActionResult> WithdrawVolunteer([FromBody] VolunteerRequest request)
         {
             var lobby = _gameService.FindLobby(request.code);
-            if (lobby == null || lobby.IsGameStarted)
+            if (lobby == null)
                 return NotFound();
 
-            if (lobby.GameState == null) return Ok();
-
             var currentPlayerName = HttpContext.Session.GetString("PlayerName");
-            if (request.team == "Sol" && lobby.GameState.Team1Volunteer == currentPlayerName)
-            {
-                lobby.GameState.Team1Volunteer = null;
-            }
-            else if (request.team == "Sağ" && lobby.GameState.Team2Volunteer == currentPlayerName)
-            {
-                lobby.GameState.Team2Volunteer = null;
-            }
-            else
-            {
-                return Forbid("Bu takımdan gönüllülüğünüzü geri çekemezsiniz.");
-            }
+            var result = await _gameService.WithdrawVolunteerAsync(lobby, currentPlayerName, request.team);
+            if (!result.success)
+                return BadRequest(new { message = result.message });
 
             await _hubContext.Clients.Group(request.code).SendAsync("UpdateLobby");
             return Ok();
